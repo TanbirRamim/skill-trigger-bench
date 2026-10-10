@@ -222,3 +222,7 @@ transcripts recorded once and scrubbed (`tests/fixtures/`).
 ## License
 
 MIT
+
+## Contributors
+
+- [@CRYPTONIKAV](https://github.com/CRYPTONIKAV): `--format github` annotations (#10), the `description-point-of-view` rule (#11), more eval templates and near-miss negatives (#12)
