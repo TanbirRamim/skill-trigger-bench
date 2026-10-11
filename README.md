@@ -227,3 +227,4 @@ MIT
 ## Contributors
 
 - [@CRYPTONIKAV](https://github.com/CRYPTONIKAV): `--format github` annotations (#10), the `description-point-of-view` rule (#11), more eval templates and near-miss negatives (#12)
+- [@Pranitha06sri](https://github.com/Pranitha06sri): `stb lint --suggest` (#14)
