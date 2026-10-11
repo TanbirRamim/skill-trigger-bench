@@ -52,6 +52,7 @@ stb lint                      # ~/.claude/skills, ./.claude/skills, installed pl
 stb lint path/to/skills       # any folder of SKILL.md folders, or one skill
 stb lint --format json        # for scripts and CI
 stb lint --strict             # warnings fail too
+stb lint --suggest            # show a suggested fix under findings that have one (never edits files)
 ```
 
 What it checks:

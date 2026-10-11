@@ -1,8 +1,10 @@
 import contextlib
 import io
 import json
+from unittest.mock import patch
 
 from skill_trigger_bench.cli import main
+from skill_trigger_bench.lint import Finding
 
 from .helpers import SkillDirCase
 
@@ -44,6 +46,92 @@ class CliTests(SkillDirCase):
         self.assertTrue(data["ok"])
         self.assertEqual(data["skills"][0]["name"], "csv-summary")
         self.assertEqual(data["findings"], [])
+
+    def test_suggest_text_is_opt_in_and_beneath_finding(self):
+        self.make_skill("folder", "other-name", GOOD)
+        _, plain, _ = run(["lint", str(self.root)])
+        _, suggested, _ = run(["lint", "--suggest", str(self.root)])
+        self.assertNotIn("+ name:", plain)
+        lines = suggested.splitlines()
+        index = next(i for i, line in enumerate(lines) if "name-dir-mismatch" in line)
+        self.assertEqual(lines[index + 1 : index + 3], ['  - name: "other-name"', '  + name: "folder"'])
+        self.assertEqual("\n".join(line for line in lines if not line.startswith(("  -", "  +"))) + "\n", plain)
+
+    def test_suggest_json_preserves_existing_fields(self):
+        self.make_skill("folder", "My_Skill", "PDF conversion with tables preserved.")
+        self.make_skill("missing", extra="license: MIT")
+        plain_code, plain, _ = run(["lint", "--format", "json", str(self.root)])
+        code, suggested, _ = run(["lint", "--format", "json", "--suggest", str(self.root)])
+        baseline, data = json.loads(plain), json.loads(suggested)
+        self.assertEqual(code, plain_code)
+        self.assertEqual(set(baseline), {"version", "ok", "stats", "skills", "findings"})
+        for original, finding in zip(baseline["findings"], data["findings"], strict=True):
+            self.assertEqual(set(original), {"rule", "severity", "skill", "message", "path"})
+            if finding["rule"] in {"name-format", "name-dir-mismatch", "description-no-when"}:
+                self.assertTrue(finding.pop("suggestion"))
+            self.assertEqual(finding, original)
+        self.assertEqual(data, baseline)
+
+    def test_suggest_json_keeps_optional_existing_fields(self):
+        self.make_skill("x", "x", GOOD)
+        finding = Finding("trigger-overlap", "warning", "x", "message", other="y", suggestion="+ draft")
+        stats = {"errors": 0, "warnings": 1}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            for options in ([], ["--suggest"]):
+                _, out, _ = run(["lint", str(self.root), "--format", "json"] + options)
+                expected = {
+                    "rule": "trigger-overlap",
+                    "severity": "warning",
+                    "skill": "x",
+                    "message": "message",
+                    "other": "y",
+                }
+                if options:
+                    expected["suggestion"] = "+ draft"
+                self.assertEqual(json.loads(out)["findings"], [expected])
+
+    def test_suggest_cli_never_modifies_skill_files(self):
+        self.make_skill("folder", "My_Skill", "Works wonders for everyone.")
+        before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob("SKILL.md")}
+        for fmt in ("text", "json", "github"):
+            run(["lint", str(self.root), "--suggest", "--format", fmt])
+        self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob("SKILL.md")})
+
+    def test_suggest_preserves_exit_counts_ignore_strict_and_github(self):
+        cases = [
+            (GOOD, "x", [], 0),
+            (GOOD, "My_Skill", [], 1),
+            ("PDF conversion with tables preserved.", "x", [], 0),
+            ("PDF conversion with tables preserved.", "x", ["--strict"], 1),
+            (
+                "PDF conversion with tables preserved.",
+                "x",
+                ["--strict", "--ignore", "description-no-when,description-short"],
+                0,
+            ),
+        ]
+        for description, name, options, expected in cases:
+            self.make_skill("x", name, description)
+            for fmt in ("text", "json", "github"):
+                with self.subTest(name=name, options=options, fmt=fmt):
+                    argv = ["lint", str(self.root), "--format", fmt] + options
+                    code, plain, _ = run(argv)
+                    suggest_code, suggested, _ = run(argv + ["--suggest"])
+                    self.assertEqual(code, expected)
+                    self.assertEqual(suggest_code, code)
+                    if fmt == "github":
+                        # one annotation per finding either way; the suggestion rides in the message
+                        pairs = zip(plain.splitlines(), suggested.splitlines(), strict=True)
+                        for before, after in pairs:
+                            self.assertTrue(after.startswith(before))
+                        if name == "My_Skill":
+                            self.assertIn('%0A+ name: "x"', suggested)
+                    elif fmt == "text":
+                        self.assertEqual(suggested.splitlines()[-1], plain.splitlines()[-1])
+                    else:
+                        self.assertEqual(json.loads(suggested)["stats"], json.loads(plain)["stats"])
+        for options in ([], ["--suggest"]):
+            self.assertEqual(run(["lint", str(self.root / "empty")] + options)[0], 2)
 
     def test_github_format_error(self):
         self.make_skill("x", extra="license: MIT")

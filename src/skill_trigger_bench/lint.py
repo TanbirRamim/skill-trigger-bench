@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import re
+import unicodedata
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -52,9 +54,73 @@ class Finding:
     message: str
     path: str = ""
     other: str = ""
+    suggestion: str = ""
 
     def to_dict(self):
         return {k: v for k, v in asdict(self).items() if v != ""}
+
+
+def _name_suggestion(old: str, new: str) -> str:
+    # JSON double-quoted strings are YAML-compatible; quote even slugs such as
+    # "true", "null", dates and numbers to preserve their string type.
+    def scalar(value):
+        quoted = json.dumps(value, ensure_ascii=False)
+        # Escape YAML line breaks and characters forbidden literally in YAML strings.
+        return re.sub(r"[\x7f-\x9f\u2028\u2029]", lambda m: f"\\u{ord(m[0]):04x}", quoted)
+
+    return f"- name: {scalar(old)}\n+ name: {scalar(new)}"
+
+
+def _slug_name(name: str) -> str:
+    normalized = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")[:NAME_MAX].rstrip("-")
+
+
+def _description_suggestion(description: str) -> str:
+    # This is a topic hint, not a trigger inference. Reject unknown sentence
+    # forms and vague or complex phrases instead of guessing or truncating them.
+    # Without a recognized verb, accept only acronym-led nominal topics.
+    placeholder = (
+        "Draft (review topic and trigger condition):\n+ Use when [describe the request that should trigger this skill]."
+    )
+    opening = re.split(r"[.!?;:\n]", description.strip(), maxsplit=1)[0]
+    verb = re.match(
+        r"^(?:converts?|process(?:es)?|summari[sz](?:e|es)|creates?|generates?|analy[sz](?:e|es)|"
+        r"manages?|validates?|extracts?)\s+",
+        opening,
+        flags=re.I,
+    )
+    phrase = opening[verb.end() :] if verb else opening
+    topic = re.split(r"\s+(?:into|with|for|to|that|which|using|from)\b", phrase, maxsplit=1, flags=re.I)[0]
+    topic = " ".join(topic.split())
+    words = topic.split()
+    if (
+        not words
+        or len(words) > 8
+        or not re.fullmatch(r"[^\W_]+(?:[- ][^\W_]+)*", topic)
+        or re.search(
+            r"\b(?:I|you|we|it|they|this|that|these|those|them|something|anything|everything|"
+            r"stuff|things|can|will|is|are|and|or)\b",
+            topic,
+            re.I,
+        )
+        or any(word.lower().endswith("ly") for word in words)
+        or (not verb and not re.match(r"^[A-Z][A-Z0-9]+(?:\s|$)", topic))
+        or (
+            not verb
+            and not re.search(
+                r"\b(?:conversion|processing|analysis|summaries|extraction|validation|management|"
+                r"files|documents|reports)\Z",
+                topic,
+                re.I,
+            )
+        )
+    ):
+        return placeholder
+    return (
+        "Draft (review topic and trigger condition):\n"
+        f"+ Use when the user's request concerns {json.dumps(topic, ensure_ascii=False)}."
+    )
 
 
 def _check_frontmatter(s: Skill) -> list[Finding]:
@@ -70,6 +136,7 @@ def _check_frontmatter(s: Skill) -> list[Finding]:
         if len(name) > NAME_MAX:
             f.append(Finding("name-length", "error", name, f"name is {len(name)} chars (max {NAME_MAX})", p))
         if not NAME_RE.match(name):
+            slug = _slug_name(name)
             f.append(
                 Finding(
                     "name-format",
@@ -77,6 +144,7 @@ def _check_frontmatter(s: Skill) -> list[Finding]:
                     name,
                     "name must be lowercase letters, digits and single hyphens",
                     p,
+                    suggestion=_name_suggestion(name, slug) if slug else "",
                 )
             )
         if name != s.dir.name:
@@ -87,6 +155,7 @@ def _check_frontmatter(s: Skill) -> list[Finding]:
                     name,
                     f"name does not match its folder '{s.dir.name}'",
                     p,
+                    suggestion=_name_suggestion(name, s.dir.name),
                 )
             )
     if not isinstance(desc, str) or not desc.strip():
@@ -101,6 +170,9 @@ def _check_frontmatter(s: Skill) -> list[Finding]:
                 s.name,
                 f"description is {len(d)} chars (max {DESCRIPTION_MAX})",
                 p,
+                suggestion=(
+                    f"+ Remove {len(d) - DESCRIPTION_MAX} characters to meet the {DESCRIPTION_MAX}-character limit."
+                ),
             )
         )
     elif len(d) < 40:
@@ -121,6 +193,7 @@ def _check_frontmatter(s: Skill) -> list[Finding]:
                 s.name,
                 "description says what the skill does but not when to use it (add 'Use when ...')",
                 p,
+                suggestion=_description_suggestion(d),
             )
         )
     if re.search(r"[<>]", d):

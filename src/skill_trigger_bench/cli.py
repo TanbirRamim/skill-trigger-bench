@@ -48,14 +48,15 @@ def cmd_lint(args) -> int:
             "ok": not failed,
             "stats": stats,
             "skills": [{"name": s.name, "source": s.source, "path": str(s.path)} for s in skills],
-            "findings": [f.to_dict() for f in findings],
+            "findings": [{k: v for k, v in f.to_dict().items() if args.suggest or k != "suggestion"} for f in findings],
         }
         print(json.dumps(out, indent=2))
     elif args.format == "github":
         for f in findings:
             command = {"error": "error", "warning": "warning"}.get(f.severity, "notice")
             title = _github_escape_prop(f.rule)
-            msg = _github_escape_data(f.message)
+            text = f"{f.message}\n{f.suggestion}" if args.suggest and f.suggestion else f.message
+            msg = _github_escape_data(text)
             if f.path:
                 try:
                     rel = os.path.relpath(f.path)
@@ -74,6 +75,9 @@ def cmd_lint(args) -> int:
         print()
         for f in findings:
             print(f"{f.severity:<7} {f.rule:<22} {f.skill}: {f.message}")
+            if args.suggest and f.suggestion:
+                for line in f.suggestion.splitlines():
+                    print(f"  {line}")
             if args.verbose and f.path:
                 print(f"{'':30}{relpath(f.path)}")
         if findings:
@@ -176,6 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--max-lines", type=int, default=BODY_MAX_LINES, help="SKILL.md body line limit (default %(default)s)"
     )
     lp.add_argument("--ignore", help="comma-separated rule names to skip")
+    lp.add_argument("--suggest", action="store_true", help="show suggested fixes (does not modify files)")
     lp.add_argument("--strict", action="store_true", help="exit 1 on warnings too")
     lp.add_argument("--no-plugins", action="store_true", help="skip installed plugin skills")
     lp.add_argument("-v", "--verbose", action="store_true", help="show file paths")

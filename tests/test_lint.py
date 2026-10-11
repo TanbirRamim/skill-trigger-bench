@@ -1,7 +1,9 @@
 import json
+from pathlib import PurePosixPath
 
-from skill_trigger_bench.lint import lint, referenced_files
-from skill_trigger_bench.skills import collect, find_skills, plugin_skill_dirs
+from skill_trigger_bench.frontmatter import load_yaml
+from skill_trigger_bench.lint import NAME_RE, Finding, _check_frontmatter, lint, referenced_files
+from skill_trigger_bench.skills import Skill, collect, find_skills, plugin_skill_dirs
 
 from .helpers import SkillDirCase
 
@@ -49,6 +51,192 @@ class LintTests(SkillDirCase):
         self.make_skill("folder", "other-name", GOOD)
         f = [x for x in self.run_lint()[0] if x.rule == "name-dir-mismatch"]
         self.assertEqual(f[0].severity, "warning")
+
+    def test_name_mismatch_suggestion(self):
+        self.make_skill("folder", "other-name", GOOD)
+        finding = next(f for f in self.run_lint()[0] if f.rule == "name-dir-mismatch")
+        self.assertEqual(finding.suggestion, '- name: "other-name"\n+ name: "folder"')
+
+    def test_name_format_suggestions(self):
+        for name, expected in [
+            ("My_Skill", "my-skill"),
+            (" A__B--C! ", "a-b-c"),
+            ("Café", "cafe"),
+            ("a" * 64 + "_b", "a" * 64),
+        ]:
+            with self.subTest(name=name):
+                self.make_skill("folder", description=GOOD, extra="name: " + json.dumps(name, ensure_ascii=False))
+                finding = next(f for f in self.run_lint()[0] if f.rule == "name-format")
+                self.assertEqual(finding.suggestion.splitlines()[-1], '+ name: "' + expected + '"')
+                self.assertRegex(expected, NAME_RE)
+        self.make_skill("folder", description=GOOD, extra='name: "!!!"')
+        finding = next(f for f in self.run_lint()[0] if f.rule == "name-format")
+        self.assertEqual(finding.suggestion, "")
+        self.assertNotIn("suggestion", finding.to_dict())
+
+    def test_description_suggestions(self):
+        for description, topic in [
+            ("Converts PDF documents into clean Markdown with tables preserved.", "PDF documents"),
+            ("PDF conversion with tables preserved and readable Markdown output.", "PDF conversion"),
+        ]:
+            with self.subTest(description=description):
+                self.make_skill("x", "x", description)
+                finding = next(f for f in self.run_lint()[0] if f.rule == "description-no-when")
+                self.assertEqual(
+                    finding.suggestion,
+                    f'Draft (review topic and trigger condition):\n+ Use when the user\'s request concerns "{topic}".',
+                )
+        for excess in (1, 76):
+            self.make_skill("x", "x", "Use when testing. " + "x" * (1024 + excess - 18))
+            finding = next(f for f in self.run_lint()[0] if f.rule == "description-length")
+            self.assertEqual(finding.suggestion, f"+ Remove {excess} characters to meet the 1024-character limit.")
+
+    def test_description_suggestion_verbs(self):
+        verbs = (
+            "Convert",
+            "Converts",
+            "Process",
+            "Processes",
+            "Summarize",
+            "Summarizes",
+            "Summarise",
+            "Summarises",
+            "Create",
+            "Creates",
+            "Generate",
+            "Generates",
+            "Analyze",
+            "Analyzes",
+            "Analyse",
+            "Analyses",
+            "Manage",
+            "Manages",
+            "Validate",
+            "Validates",
+            "Extract",
+            "Extracts",
+        )
+        for verb in verbs:
+            with self.subTest(verb=verb):
+                self.make_skill("x", "x", f"{verb} PDF documents with tables preserved.")
+                finding = next(f for f in self.run_lint()[0] if f.rule == "description-no-when")
+                self.assertIn("Draft (review topic and trigger condition):", finding.suggestion)
+                self.assertIn('concerns "PDF documents".', finding.suggestion)
+
+    def test_description_suggestion_uncertain_topic(self):
+        for description in (
+            "I can help you do anything.",
+            "Works wonders for everyone.",
+            "Converts things into something useful.",
+            "Processes quickly.",
+            "Converts.",
+            "...",
+            "Creates reports and sends emails.",
+            "Helps create PDF documents.",
+            "Automatically converts PDF documents.",
+        ):
+            with self.subTest(description=description):
+                self.make_skill("x", "x", description)
+                finding = next(f for f in self.run_lint()[0] if f.rule == "description-no-when")
+                self.assertEqual(
+                    finding.suggestion,
+                    "Draft (review topic and trigger condition):\n"
+                    "+ Use when [describe the request that should trigger this skill].",
+                )
+
+    def test_name_suggestions_preserve_yaml_string_values(self):
+        for value in (
+            "true",
+            "false",
+            "null",
+            "yes",
+            "no",
+            "on",
+            "off",
+            "123",
+            "2026-10-11",
+            "a: b # comment",
+            "[a, b]",
+            "*alias",
+            "&anchor",
+            "!tag",
+            "|",
+            ">",
+            'a"b',
+            "a'b",
+            "a\\b",
+            "line\nnext",
+        ):
+            with self.subTest(value=value):
+                skill = Skill(self.root / "target" / "SKILL.md", meta={"name": value, "description": GOOD})
+                finding = next(f for f in _check_frontmatter(skill) if f.rule == "name-dir-mismatch")
+                lines = finding.suggestion.splitlines()
+                self.assertEqual(len(lines), 2)
+                self.assertEqual(load_yaml(lines[0][2:]), {"name": value})
+                self.assertEqual(load_yaml(lines[1][2:]), {"name": "target"})
+                skill.meta["name"] = "old-name"
+                # Use a pure path so Windows drive/separator syntax cannot alter the test value.
+                skill.path = PurePosixPath("/skills") / value / "SKILL.md"
+                finding = next(f for f in _check_frontmatter(skill) if f.rule == "name-dir-mismatch")
+                self.assertEqual(load_yaml(finding.suggestion.splitlines()[1][2:]), {"name": value})
+
+    def test_name_suggestion_escapes_yaml_unicode_line_breaks(self):
+        for char in ("\u007f", "\u0080", "\u0085", "\u009f", "\u2028", "\u2029"):
+            value = "a" + char + "b"
+            skill = Skill(self.root / "target" / "SKILL.md", meta={"name": value, "description": GOOD})
+            finding = next(f for f in _check_frontmatter(skill) if f.rule == "name-dir-mismatch")
+            self.assertEqual(len(finding.suggestion.splitlines()), 2)
+            self.assertEqual(json.loads(finding.suggestion.splitlines()[0][8:]), value)
+
+    def test_empty_slug_has_no_suggestion(self):
+        for value in ("!!!", "___", "---", "\u4e2d\u6587"):
+            with self.subTest(value=value):
+                skill = Skill(self.root / "x" / "SKILL.md", meta={"name": value, "description": GOOD})
+                finding = next(f for f in _check_frontmatter(skill) if f.rule == "name-format")
+                self.assertEqual(finding.suggestion, "")
+                self.assertNotIn("suggestion", finding.to_dict())
+
+    def test_description_length_uses_stripped_character_count(self):
+        for excess in (0, 1, 37):
+            description = "  " + "Use when testing. " + "\u00e9" * (1024 + excess - 18) + "  "
+            skill = Skill(self.root / "x" / "SKILL.md", meta={"name": "x", "description": description})
+            findings = [f for f in _check_frontmatter(skill) if f.rule == "description-length"]
+            if excess:
+                self.assertEqual(
+                    findings[0].suggestion, f"+ Remove {excess} characters to meet the 1024-character limit."
+                )
+            else:
+                self.assertEqual(findings, [])
+
+    def test_finding_serialization_without_suggestion(self):
+        self.assertEqual(
+            Finding("rule", "info", "skill", "message").to_dict(),
+            {"rule": "rule", "severity": "info", "skill": "skill", "message": "message"},
+        )
+        self.assertEqual(
+            Finding("rule", "warning", "skill", "message", "path", "other").to_dict(),
+            {
+                "rule": "rule",
+                "severity": "warning",
+                "skill": "skill",
+                "message": "message",
+                "path": "path",
+                "other": "other",
+            },
+        )
+
+    def test_suggestions_do_not_modify_files(self):
+        self.make_skill("folder", "My_Skill", "PDF conversion with tables preserved. " + "x" * 1024)
+        self.make_skill("clean", "clean", GOOD)
+        before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob("*") if p.is_file()}
+        findings, _ = self.run_lint()
+        self.assertEqual(
+            {f.rule for f in findings if f.suggestion},
+            {"name-format", "name-dir-mismatch", "description-no-when", "description-length"},
+        )
+        self.assertEqual(
+            before, {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob("*") if p.is_file()}
+        )
 
     def test_description_too_long(self):
         self.make_skill("x", "x", "Use when testing. " + "word " * 220)
