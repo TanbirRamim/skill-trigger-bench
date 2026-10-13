@@ -45,6 +45,19 @@ pipx install .        # or: uv tool install .
 stb --version
 ```
 
+## GitHub Actions
+
+Lint skills in CI with the composite action. It installs Python and `stb` from the action repository, then reports findings as GitHub annotations:
+
+```yaml
+- uses: TanbirRamim/skill-trigger-bench@v0
+  with:
+    paths: skills/
+    strict: true
+```
+
+The optional inputs are `paths` (defaults to `.`), `strict` (defaults to `false`), `ignore` (comma-separated rule names), `budget` (defaults to `15000`), and `overlap` (defaults to `0.35`). The action exits with the `stb lint` status, so errors fail the workflow step.
+
 ## stb lint
 
 ```sh

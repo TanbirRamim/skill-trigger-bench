@@ -16,3 +16,36 @@ jobs:
       - run: pip install . ruff
       - run: python -m unittest discover -s tests -t .
       - run: ruff check . && ruff format --check .
+
+  action:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint the example skills
+        uses: ./
+        with:
+          paths: examples/skills
+      - name: Create an invalid temporary skill
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/stb-invalid-skill"
+          printf '%s\n' '---' 'name: invalid-skill' '---' > "$RUNNER_TEMP/stb-invalid-skill/SKILL.md"
+      - name: Confirm lint errors fail the action
+        id: invalid
+        uses: ./
+        with:
+          paths: ${{ runner.temp }}/stb-invalid-skill
+        continue-on-error: true
+      - name: Check the invalid skill failed
+        if: always()
+        shell: bash
+        env:
+          ACTION_OUTCOME: ${{ steps.invalid.outcome }}
+        run: |
+          if [[ "$ACTION_OUTCOME" != "failure" ]]; then
+            echo "Expected the action to fail, got: $ACTION_OUTCOME"
+            exit 1
+          fi
