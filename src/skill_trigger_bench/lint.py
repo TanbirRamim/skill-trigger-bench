@@ -43,6 +43,8 @@ POINT_OF_VIEW_RE = re.compile(
     re.I,
 )
 
+FILLER_START_RE = re.compile(r"^(this (?:is a )?skill|a skill|skill (?:for|to))\b[\s]*", re.I)
+
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
 
@@ -198,6 +200,19 @@ def _check_frontmatter(s: Skill) -> list[Finding]:
         )
     if re.search(r"[<>]", d):
         f.append(Finding("description-angle-brackets", "info", s.name, "description contains '<' or '>'", p))
+    filler = FILLER_START_RE.match(d)
+    if filler:
+        f.append(
+            Finding(
+                "description-filler-start",
+                "info",
+                s.name,
+                f"description starts with filler that costs {len(filler.group(0))} characters "
+                "and matches nothing; lead with the task instead "
+                "(e.g. 'Summarise CSV files. Use when ...')",
+                p,
+            )
+        )
     if POINT_OF_VIEW_RE.search(QUOTED_RE.sub(" ", d)):
         f.append(
             Finding(
