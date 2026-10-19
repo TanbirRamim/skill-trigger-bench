@@ -75,6 +75,7 @@ What it checks:
 | `frontmatter`, `name-*`, `description-missing`, `description-length` | the [Agent Skills spec](https://agentskills.io/specification): name ≤ 64 chars, lowercase-hyphen, matches its folder; description present and ≤ 1024 chars |
 | `description-no-when` | the description says what the skill does but never when to use it |
 | `description-point-of-view` | the description is written in first or second person instead of third |
+| `description-filler-start` | the description wastes characters on a filler start like "This skill..." instead of leading with the task |
 | `description-budget` | all descriptions together are over (or near) the ~15k char budget (`--budget` to change) |
 | `trigger-overlap` | two descriptions are similar enough (TF-IDF cosine ≥ 0.35, `--overlap`) that they'll fight over prompts; the shared terms are listed |
 | `duplicate-name` | the same skill name installed twice, e.g. from two plugins |

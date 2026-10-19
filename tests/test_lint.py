@@ -333,6 +333,36 @@ class LintTests(SkillDirCase):
         self.make_skill("x", "x", "Processes PDFs. Use when the user mentions PDFs.")
         self.assertNotIn("description-point-of-view", rules(self.run_lint()[0]))
 
+    def test_description_filler_start_fires(self):
+        for description in [
+            "This skill summarises CSV files. Use when the user asks about a CSV.",
+            "A skill that converts PDFs to Markdown. Use when the user mentions PDFs.",
+            "This is a skill for tidying git branches. Use when branches pile up.",
+            "Skill for transcribing audio recordings. Use when the user has audio.",
+            "Skill to batch-resize images. Use when the user has many images.",
+            "this skill summarises CSV files in lowercase.",
+        ]:
+            with self.subTest(description=description):
+                self.make_skill("x", "x", description)
+                f = [x for x in self.run_lint()[0] if x.rule == "description-filler-start"]
+                self.assertEqual(len(f), 1)
+                self.assertEqual(f[0].severity, "info")
+
+    def test_description_filler_start_message_counts_characters(self):
+        self.make_skill("x", "x", "This skill summarises CSV files. Use when the user asks about a CSV.")
+        finding = next(f for f in self.run_lint()[0] if f.rule == "description-filler-start")
+        self.assertIn("costs 11 characters", finding.message)
+
+    def test_description_task_first_is_fine(self):
+        for description in [
+            "Summarise CSV files. Use when the user asks what is in a CSV file.",
+            "Thistle garden planner. Use when the user mentions thistles.",
+            "These skills list helper. Use when the user asks about these skills.",
+        ]:
+            with self.subTest(description=description):
+                self.make_skill("x", "x", description)
+                self.assertNotIn("description-filler-start", rules(self.run_lint()[0]))
+
     def test_description_point_of_view_ignores_quoted_user_phrases(self):
         self.make_skill("x", "x", 'Summarises papers. Use when the user says "tell me about this paper".')
         self.assertNotIn("description-point-of-view", rules(self.run_lint()[0]))
