@@ -243,3 +243,4 @@ MIT
 - [@CRYPTONIKAV](https://github.com/CRYPTONIKAV): `--format github` annotations (#10), the `description-point-of-view` rule (#11), more eval templates and near-miss negatives (#12)
 - [@Pranitha06sri](https://github.com/Pranitha06sri): `stb lint --suggest` (#14)
 - [@yesheng-oss](https://github.com/yesheng-oss): GitHub Action wrapper (#17)
+- [@chiragjangiir](https://github.com/chiragjangiir): the `description-filler-start` rule (#19)
