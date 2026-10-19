@@ -93,7 +93,7 @@ class CliTests(SkillDirCase):
     def test_suggest_cli_never_modifies_skill_files(self):
         self.make_skill("folder", "My_Skill", "Works wonders for everyone.")
         before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob("SKILL.md")}
-        for fmt in ("text", "json", "github"):
+        for fmt in ("text", "json", "github", "sarif"):
             run(["lint", str(self.root), "--suggest", "--format", fmt])
         self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob("SKILL.md")})
 
@@ -112,7 +112,7 @@ class CliTests(SkillDirCase):
         ]
         for description, name, options, expected in cases:
             self.make_skill("x", name, description)
-            for fmt in ("text", "json", "github"):
+            for fmt in ("text", "json", "github", "sarif"):
                 with self.subTest(name=name, options=options, fmt=fmt):
                     argv = ["lint", str(self.root), "--format", fmt] + options
                     code, plain, _ = run(argv)
@@ -128,10 +128,48 @@ class CliTests(SkillDirCase):
                             self.assertIn('%0A+ name: "x"', suggested)
                     elif fmt == "text":
                         self.assertEqual(suggested.splitlines()[-1], plain.splitlines()[-1])
+                    elif fmt == "sarif":
+                        self.assertEqual(
+                            len(json.loads(suggested)["runs"][0]["results"]),
+                            len(json.loads(plain)["runs"][0]["results"]),
+                        )
                     else:
                         self.assertEqual(json.loads(suggested)["stats"], json.loads(plain)["stats"])
         for options in ([], ["--suggest"]):
             self.assertEqual(run(["lint", str(self.root / "empty")] + options)[0], 2)
+
+    def test_sarif_format_clean_exit_zero(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        code, out, _ = run(["lint", "--format", "sarif", str(self.root)])
+        self.assertEqual(code, 0)
+        data = json.loads(out)
+        self.assertEqual(data["version"], "2.1.0")
+        self.assertEqual(data["$schema"], "https://json.schemastore.org/sarif-2.1.0.json")
+        run_entry = data["runs"][0]
+        self.assertEqual(run_entry["tool"]["driver"]["name"], "stb")
+        self.assertEqual(run_entry["tool"]["driver"]["rules"], [])
+        self.assertEqual(run_entry["results"], [])
+
+    def test_sarif_format_with_findings(self):
+        self.make_skill("x", extra="license: MIT")
+        code, out, _ = run(["lint", "--format", "sarif", str(self.root)])
+        self.assertEqual(code, 1)
+        data = json.loads(out)
+        self.assertEqual(data["version"], "2.1.0")
+        run_entry = data["runs"][0]
+        self.assertEqual(run_entry["tool"]["driver"]["name"], "stb")
+        rules = run_entry["tool"]["driver"]["rules"]
+        rule_ids = {r["id"] for r in rules}
+        self.assertIn("description-missing", rule_ids)
+        results = run_entry["results"]
+        self.assertTrue(results)
+        desc_res = next(r for r in results if r["ruleId"] == "description-missing")
+        self.assertEqual(desc_res["level"], "error")
+        self.assertIn("description", desc_res["message"]["text"])
+        self.assertTrue(desc_res["locations"])
+        uri = desc_res["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+        self.assertTrue(uri.endswith("SKILL.md"))
+        self.assertNotIn("\\", uri)
 
     def test_github_format_error(self):
         self.make_skill("x", extra="license: MIT")

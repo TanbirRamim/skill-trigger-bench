@@ -65,6 +65,49 @@ def cmd_lint(args) -> int:
                 print(f"::{command} file={_github_escape_prop(rel)},title={title}::{msg}")
             else:
                 print(f"::{command} title={title}::{msg}")
+    elif args.format == "sarif":
+        rules = [{"id": r} for r in sorted({f.rule for f in findings})]
+        results = []
+        for f in findings:
+            text = f"{f.message}\n{f.suggestion}" if args.suggest and f.suggestion else f.message
+            level = {"error": "error", "warning": "warning"}.get(f.severity, "note")
+            res = {
+                "ruleId": f.rule,
+                "level": level,
+                "message": {"text": text},
+            }
+            if f.path:
+                try:
+                    rel = os.path.relpath(f.path)
+                except ValueError:  # Windows: path on another drive than the cwd
+                    rel = str(f.path)
+                res["locations"] = [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {
+                                "uri": rel.replace("\\", "/"),
+                            }
+                        }
+                    }
+                ]
+            results.append(res)
+        sarif = {
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "stb",
+                            "version": __version__,
+                            "rules": rules,
+                        }
+                    },
+                    "results": results,
+                }
+            ],
+        }
+        print(json.dumps(sarif, indent=2))
     else:
         sources = {}
         for s in skills:
@@ -166,7 +209,7 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="skill folders or dirs of skills (default: ~/.claude/skills, .claude/skills, installed plugins)",
     )
-    lp.add_argument("--format", choices=["text", "json", "github"], default="text")
+    lp.add_argument("--format", choices=["text", "json", "github", "sarif"], default="text")
     lp.add_argument(
         "--budget", type=int, default=DEFAULT_BUDGET, help="description budget in chars (default %(default)s)"
     )

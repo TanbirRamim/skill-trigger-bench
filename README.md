@@ -64,6 +64,7 @@ The optional inputs are `paths` (defaults to `.`), `strict` (defaults to `false`
 stb lint                      # ~/.claude/skills, ./.claude/skills, installed plugin skills
 stb lint path/to/skills       # any folder of SKILL.md folders, or one skill
 stb lint --format json        # for scripts and CI
+stb lint --format sarif       # SARIF 2.1.0 for GitHub code scanning
 stb lint --strict             # warnings fail too
 stb lint --suggest            # show a suggested fix under findings that have one (never edits files)
 ```
@@ -201,7 +202,7 @@ another agent is a subclass with a `run()` method.
 
 `stb lint` exits 1 on errors (or on warnings with `--strict`), and `--format json` gives
 you something to parse. `--format github` prints one workflow command per finding
-(`::error`, `::warning`, `::notice` for info) for inline PR annotations. See [.github/workflows/skills.yml](.github/workflows/skills.yml):
+(`::error`, `::warning`, `::notice` for info) for inline PR annotations, while `--format sarif` outputs SARIF 2.1.0 for GitHub code scanning. See [.github/workflows/skills.yml](.github/workflows/skills.yml):
 lint runs on every PR that touches skills; eval is manual (`workflow_dispatch`) because it
 needs an API key and costs money.
 
