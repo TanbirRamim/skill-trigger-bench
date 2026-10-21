@@ -176,6 +176,16 @@ def cmd_eval(args) -> int:
 
     report = run_eval(skill, neighbours, prompts, runner, progress)
     ok = report.passed(args.min_trigger, args.max_false)
+    if getattr(args, "html", None):
+        from .report import generate_html_report
+
+        html_doc = generate_html_report(
+            report,
+            min_trigger=args.min_trigger,
+            max_false=args.max_false,
+            model=args.model,
+        )
+        Path(args.html).write_text(html_doc, encoding="utf-8")
     if args.format == "json":
         d = report.to_dict()
         d.update(ok=ok, generated_prompts=prompts.generated, min_trigger=args.min_trigger, max_false=args.max_false)
@@ -243,6 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
     ep.add_argument("--max-prompts", type=int, default=40, help="safety cap on model calls (0 = no cap)")
     ep.add_argument("--timeout", type=int, default=180)
     ep.add_argument("--dry-run", action="store_true", help="print the prompts and exit")
+    ep.add_argument("--html", help="write self-contained HTML report to PATH")
     ep.add_argument("--format", choices=["text", "json"], default="text")
     ep.set_defaults(func=cmd_eval)
     return p
