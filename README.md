@@ -127,6 +127,7 @@ This one calls a model, so it costs money. Each prompt is one `claude -p` run.
 stb eval path/to/my-skill --dry-run                    # print generated prompts, no calls
 stb eval path/to/my-skill --prompts prompts.yaml --model haiku
 stb eval path/to/my-skill --with path/to/other-skill   # install neighbours too, to test collisions
+stb eval path/to/my-skill --prompts prompts.yaml --html report.html # generate standalone HTML report
 ```
 
 How it works:
