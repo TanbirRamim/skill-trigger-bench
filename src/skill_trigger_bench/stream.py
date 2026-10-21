@@ -179,3 +179,79 @@ def parse_codex_text(text: str, names: dict[str, str] | None = None) -> Transcri
     t = parse_codex_events(events, names)
     t.bad_lines += bad
     return t
+
+
+# --- Gemini CLI ------------------------------------------------------------------------
+def parse_gemini_events(events, names: dict[str, str] | None = None) -> Transcript:
+    names = names or {}
+    t = Transcript()
+    seen: set[str] = set()
+    for ev in events:
+        if not isinstance(ev, dict):
+            t.bad_lines += 1
+            continue
+        typ = ev.get("type")
+        if typ == "error":
+            t.finished = True
+            t.is_error = True
+            err = ev.get("error")
+            if isinstance(err, dict):
+                code = err.get("code")
+                msg = err.get("message", "")
+                t.result = f"{code}: {msg}" if code is not None else str(msg or err)
+            else:
+                t.result = str(err or "Unknown error")
+        elif typ == "gemini":
+            t.finished = True
+            for call in ev.get("toolCalls") or []:
+                if not isinstance(call, dict):
+                    continue
+                cname = call.get("name", "")
+                cid = call.get("id") or str(id(call))
+                t.tool_calls.append(cname)
+                args = call.get("args") or {}
+                if cname.lower() in ("skill", "load_skill", "use_skill"):
+                    s = _skill_name_from_input(args)
+                    if s:
+                        mapped = names.get(s, s)
+                        if (cid, mapped) not in seen:
+                            t.skill_calls.append(mapped)
+                            seen.add((cid, mapped))
+                cmd = args.get("command") or args.get("file_path") or args.get("path") or ""
+                for folder in _SKILL_MD.findall(str(cmd)):
+                    mapped = names.get(folder, folder)
+                    if (cid, mapped) not in seen:
+                        t.skill_calls.append(mapped)
+                        seen.add((cid, mapped))
+            content = ev.get("content")
+            if isinstance(content, str):
+                t.result = content
+            elif isinstance(content, list):
+                texts = [
+                    b.get("text")
+                    for b in content
+                    if isinstance(b, dict) and b.get("text") and not b.get("thought")
+                ]
+                if texts:
+                    t.result = texts[-1]
+        elif typ == "result":
+            t.finished = True
+            if ev.get("status") == "error":
+                t.is_error = True
+                t.result = str(ev.get("error", "Error"))
+    return t
+
+
+def parse_gemini_text(text: str, names: dict[str, str] | None = None) -> Transcript:
+    events, bad = [], 0
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            bad += 1
+    t = parse_gemini_events(events, names)
+    t.bad_lines += bad
+    return t

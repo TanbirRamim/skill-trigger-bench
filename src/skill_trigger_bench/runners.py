@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .skills import load_skill
-from .stream import Transcript, parse_codex_text, parse_text
+from .stream import Transcript, parse_codex_text, parse_gemini_text, parse_text
 
 
 class RunnerError(RuntimeError):
@@ -188,6 +188,68 @@ class CodexRunner(Runner):
 
 
 @dataclass
+class GeminiRunner(Runner):
+    """Google Gemini CLI (`gemini -p`).
+
+    Skills go in <sandbox>/.gemini/skills. The runner points GEMINI_HOME to the sandbox
+    directory to isolate execution from global user-level skills.
+    """
+
+    binary: str = "gemini"
+    name: str = "gemini"
+
+    def available(self) -> bool:
+        return shutil.which(self.binary) is not None
+
+    def command(self, prompt: str) -> list[str]:
+        cmd = [
+            self.binary,
+            "-p",
+            prompt,
+            "--output-format",
+            "stream-json",
+        ]
+        if self.model:
+            cmd += ["--model", self.model]
+        return cmd + self.extra_args
+
+    def env(self, sandbox: Path) -> dict[str, str]:
+        env = dict(os.environ)
+        env["GEMINI_HOME"] = str(sandbox / ".gemini")
+        return env
+
+    def run(self, prompt: str, skill_dirs: list[Path]) -> Transcript:
+        names = {}
+        for d in skill_dirs:
+            try:
+                names[d.name] = load_skill(d / "SKILL.md").name
+            except (OSError, ValueError):
+                names[d.name] = d.name
+        sandbox = self.make_sandbox(skill_dirs, ".gemini/skills")
+        try:
+            proc = subprocess.run(
+                self.command(prompt),
+                cwd=sandbox,
+                env=self.env(sandbox),
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                stdin=subprocess.DEVNULL,
+            )
+        except subprocess.TimeoutExpired as e:
+            raise RunnerError(f"gemini timed out after {self.timeout}s") from e
+        except OSError as e:
+            raise RunnerError(f"could not start {self.binary}: {e}") from e
+        finally:
+            shutil.rmtree(sandbox, ignore_errors=True)
+        t = parse_gemini_text(proc.stdout, names)
+        if t.is_error or (proc.returncode != 0 and not t.finished):
+            detail = t.result or proc.stderr.strip()
+            raise RunnerError(f"gemini exited {proc.returncode}: {detail[:300]}")
+        return t
+
+
+@dataclass
 class ReplayRunner(Runner):
     """Replays recorded transcripts; used by tests and for offline re-scoring."""
 
@@ -203,4 +265,8 @@ class ReplayRunner(Runner):
         return parse_text(self.transcripts.pop(0))
 
 
-RUNNERS: dict[str, type[Runner]] = {"claude": ClaudeRunner, "codex": CodexRunner}
+RUNNERS: dict[str, type[Runner]] = {
+    "claude": ClaudeRunner,
+    "codex": CodexRunner,
+    "gemini": GeminiRunner,
+}

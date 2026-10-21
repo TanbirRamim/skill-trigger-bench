@@ -197,6 +197,11 @@ another agent is a subclass with a `run()` method.
   event schema against the docs and `codex-rs/exec/src/exec_events.rs`. The parser tests use
   hand-written fixtures in that shape. **It has not been run live against a model yet**;
   if you do, a recorded transcript in an issue would help.
+- **`gemini`**: `gemini -p --output-format stream-json`. Skills are placed into
+  `<sandbox>/.gemini/skills`, and `GEMINI_HOME` is pointed at the sandbox to keep
+  your global `~/.gemini/skills` from interfering.
+  Activation is detected either from explicit `Skill` tool calls in `toolCalls`, or
+  heuristically when a command or file view accesses `<skill>/SKILL.md`.
 
 ## CI
 
