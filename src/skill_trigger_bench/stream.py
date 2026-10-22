@@ -182,47 +182,74 @@ def parse_codex_text(text: str, names: dict[str, str] | None = None) -> Transcri
 
 
 # --- Gemini CLI ------------------------------------------------------------------------
+# `gemini -p ... --output-format stream-json` emits one JSON event per line. Schema from
+# google-gemini/gemini-cli packages/core/src/output/types.ts:
+#   init        {session_id, model}
+#   message     {role: user|assistant, content, delta?}
+#   tool_use    {tool_name, tool_id, parameters}
+#   tool_result {tool_id, status: success|error, output?, error?}
+#   error       {severity: warning|error, message}
+#   result      {status: success|error, error?, stats?}
+# Skills are activated by the `activate_skill` tool with a `name` parameter
+# (packages/core/src/tools/activate-skill.ts). The older saved-session format
+# (`type: "gemini"` with `toolCalls`) is still accepted as a fallback.
+_GEMINI_SKILL_TOOLS = ("activate_skill", "skill", "load_skill", "use_skill")
+
+
+def _gemini_tool_call(t: Transcript, seen: set, names: dict, cname: str, cid: str, args) -> None:
+    t.tool_calls.append(cname)
+    if not isinstance(args, dict):
+        args = {}
+    marks = []
+    if cname.lower() in _GEMINI_SKILL_TOOLS:
+        s = _skill_name_from_input(args)
+        if s:
+            marks.append(s)
+    cmd = args.get("command") or args.get("file_path") or args.get("absolute_path") or args.get("path") or ""
+    marks += _SKILL_MD.findall(str(cmd))
+    for s in marks:
+        mapped = names.get(s, s)
+        if (cid, mapped) not in seen:
+            t.skill_calls.append(mapped)
+            seen.add((cid, mapped))
+
+
 def parse_gemini_events(events, names: dict[str, str] | None = None) -> Transcript:
     names = names or {}
     t = Transcript()
-    seen: set[str] = set()
+    seen: set = set()
+    text = ""
     for ev in events:
         if not isinstance(ev, dict):
             t.bad_lines += 1
             continue
         typ = ev.get("type")
-        if typ == "error":
+        if typ == "tool_use":
+            cid = ev.get("tool_id") or str(id(ev))
+            _gemini_tool_call(t, seen, names, ev.get("tool_name", ""), cid, ev.get("parameters"))
+            text = ""
+        elif typ == "message":
+            if ev.get("role") == "assistant" and isinstance(ev.get("content"), str):
+                text = text + ev["content"] if ev.get("delta") else ev["content"]
+                t.result = text
+        elif typ == "error":
+            if ev.get("severity") == "warning":
+                continue
             t.finished = True
             t.is_error = True
             err = ev.get("error")
-            if isinstance(err, dict):
+            if isinstance(err, dict):  # session format
                 code = err.get("code")
                 msg = err.get("message", "")
                 t.result = f"{code}: {msg}" if code is not None else str(msg or err)
             else:
-                t.result = str(err or "Unknown error")
-        elif typ == "gemini":
+                t.result = str(ev.get("message") or err or "Unknown error")
+        elif typ == "gemini":  # saved-session fallback
             t.finished = True
             for call in ev.get("toolCalls") or []:
-                if not isinstance(call, dict):
-                    continue
-                cname = call.get("name", "")
-                cid = call.get("id") or str(id(call))
-                t.tool_calls.append(cname)
-                args = call.get("args") or {}
-                if cname.lower() in ("skill", "load_skill", "use_skill"):
-                    s = _skill_name_from_input(args)
-                    if s:
-                        mapped = names.get(s, s)
-                        if (cid, mapped) not in seen:
-                            t.skill_calls.append(mapped)
-                            seen.add((cid, mapped))
-                cmd = args.get("command") or args.get("file_path") or args.get("path") or ""
-                for folder in _SKILL_MD.findall(str(cmd)):
-                    mapped = names.get(folder, folder)
-                    if (cid, mapped) not in seen:
-                        t.skill_calls.append(mapped)
-                        seen.add((cid, mapped))
+                if isinstance(call, dict):
+                    cid = call.get("id") or str(id(call))
+                    _gemini_tool_call(t, seen, names, call.get("name", ""), cid, call.get("args"))
             content = ev.get("content")
             if isinstance(content, str):
                 t.result = content
@@ -236,7 +263,11 @@ def parse_gemini_events(events, names: dict[str, str] | None = None) -> Transcri
             t.finished = True
             if ev.get("status") == "error":
                 t.is_error = True
-                t.result = str(ev.get("error", "Error"))
+                err = ev.get("error")
+                if isinstance(err, dict):
+                    t.result = str(err.get("message") or err.get("type") or "Error")
+                else:
+                    t.result = str(err or "Error")
     return t
 
 

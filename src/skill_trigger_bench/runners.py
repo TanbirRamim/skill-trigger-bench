@@ -191,8 +191,9 @@ class CodexRunner(Runner):
 class GeminiRunner(Runner):
     """Google Gemini CLI (`gemini -p`).
 
-    Skills go in <sandbox>/.gemini/skills. The runner points GEMINI_HOME to the sandbox
-    directory to isolate execution from global user-level skills.
+    Skills go in <sandbox>/.gemini/skills. The runner sets GEMINI_CLI_HOME to the sandbox
+    (the CLI reads <GEMINI_CLI_HOME>/.gemini instead of ~/.gemini) so global user-level
+    skills do not leak in.
     """
 
     binary: str = "gemini"
@@ -215,7 +216,7 @@ class GeminiRunner(Runner):
 
     def env(self, sandbox: Path) -> dict[str, str]:
         env = dict(os.environ)
-        env["GEMINI_HOME"] = str(sandbox / ".gemini")
+        env["GEMINI_CLI_HOME"] = str(sandbox)
         return env
 
     def run(self, prompt: str, skill_dirs: list[Path]) -> Transcript:

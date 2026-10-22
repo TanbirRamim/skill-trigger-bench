@@ -1,3 +1,4 @@
-{"sessionId": "0199a213-81c0-7800-8aa1-bbab2a035a56", "startTime": "2026-10-17T09:00:00.000Z"}
-{"id": "u1", "type": "user", "content": [{"text": "Summarize the file"}]}
-{"type": "error", "error": {"code": 401, "message": "API key invalid or expired"}}
+{"type": "init", "timestamp": "2026-10-22T09:00:00.000Z", "session_id": "c3f1a2b4-0d1e-4a5b-9c8d-7e6f5a4b3c2d", "model": "gemini-2.5-pro"}
+{"type": "message", "timestamp": "2026-10-22T09:00:00.100Z", "role": "user", "content": "Summarize the file"}
+{"type": "error", "timestamp": "2026-10-22T09:00:01.000Z", "severity": "warning", "message": "Retrying after 429"}
+{"type": "result", "timestamp": "2026-10-22T09:00:01.100Z", "status": "error", "error": {"type": "FatalAuthenticationError", "message": "401 API key invalid or expired"}}

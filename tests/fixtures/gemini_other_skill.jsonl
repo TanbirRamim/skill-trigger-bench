@@ -1,5 +1,6 @@
-{"sessionId": "0199a213-81c0-7800-8aa1-bbab2a035a55", "startTime": "2026-10-17T09:00:00.000Z"}
-{"id": "u1", "type": "user", "content": [{"text": "Bake a sourdough bread"}]}
-{"id": "g1", "type": "gemini", "model": "gemini-2.5-pro", "toolCalls": [{"id": "call_0", "name": "Skill", "args": {"name": "bread"}}]}
-{"id": "g2", "type": "gemini", "model": "gemini-2.5-pro", "content": [{"text": "Using the bread recipe skill."}]}
-{"type": "result", "status": "completed"}
+{"type": "init", "timestamp": "2026-10-22T09:00:00.000Z", "session_id": "c3f1a2b4-0d1e-4a5b-9c8d-7e6f5a4b3c2d", "model": "gemini-2.5-pro"}
+{"type": "message", "timestamp": "2026-10-22T09:00:00.100Z", "role": "user", "content": "Bake a sourdough bread"}
+{"type": "tool_use", "timestamp": "2026-10-22T09:00:01.000Z", "tool_name": "activate_skill", "tool_id": "activate_skill-1761123601000-0", "parameters": {"name": "bread"}}
+{"type": "tool_result", "timestamp": "2026-10-22T09:00:01.200Z", "tool_id": "activate_skill-1761123601000-0", "status": "success", "output": "Skill **bread** activated."}
+{"type": "message", "timestamp": "2026-10-22T09:00:02.000Z", "role": "assistant", "content": "Using the bread recipe skill.", "delta": true}
+{"type": "result", "timestamp": "2026-10-22T09:00:05.000Z", "status": "success", "stats": {"total_tokens": 1200, "input_tokens": 1000, "output_tokens": 200, "cached": 0, "input": 1000, "duration_ms": 5000, "tool_calls": 1, "models": {}}}

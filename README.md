@@ -199,10 +199,13 @@ another agent is a subclass with a `run()` method.
   hand-written fixtures in that shape. **It has not been run live against a model yet**;
   if you do, a recorded transcript in an issue would help.
 - **`gemini`**: `gemini -p --output-format stream-json`. Skills are placed into
-  `<sandbox>/.gemini/skills`, and `GEMINI_HOME` is pointed at the sandbox to keep
-  your global `~/.gemini/skills` from interfering.
-  Activation is detected either from explicit `Skill` tool calls in `toolCalls`, or
-  heuristically when a command or file view accesses `<skill>/SKILL.md`.
+  `<sandbox>/.gemini/skills`, and `GEMINI_CLI_HOME` is pointed at the sandbox so your
+  global `~/.gemini` (skills, settings) stays out of it.
+  Activation is detected from `tool_use` events for `activate_skill` (its `name`
+  parameter), or heuristically when a tool reads `<skill>/SKILL.md`. The event schema
+  was checked against `packages/core/src/output/types.ts` and
+  `packages/core/src/tools/activate-skill.ts` in google-gemini/gemini-cli.
+  **It has not been run live yet.**
 
 ## CI
 
