@@ -1,0 +1,6 @@
+{"type": "init", "timestamp": "2026-10-22T09:00:00.000Z", "session_id": "c3f1a2b4-0d1e-4a5b-9c8d-7e6f5a4b3c2d", "model": "gemini-2.5-pro"}
+{"type": "message", "timestamp": "2026-10-22T09:00:00.100Z", "role": "user", "content": "Bake a sourdough bread"}
+{"type": "tool_use", "timestamp": "2026-10-22T09:00:01.000Z", "tool_name": "read_file", "tool_id": "read_file-1761123601000-0", "parameters": {"file_path": ".gemini/skills/bread/SKILL.md"}}
+{"type": "tool_result", "timestamp": "2026-10-22T09:00:01.200Z", "tool_id": "read_file-1761123601000-0", "status": "success", "output": ""}
+{"type": "message", "timestamp": "2026-10-22T09:00:02.000Z", "role": "assistant", "content": "Following the bread recipe.", "delta": true}
+{"type": "result", "timestamp": "2026-10-22T09:00:05.000Z", "status": "success", "stats": {"total_tokens": 1200, "input_tokens": 1000, "output_tokens": 200, "cached": 0, "input": 1000, "duration_ms": 5000, "tool_calls": 1, "models": {}}}

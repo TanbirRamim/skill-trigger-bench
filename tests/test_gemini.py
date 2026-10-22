@@ -16,7 +16,7 @@ class GeminiParseTests(SkillDirCase):
         self.assertFalse(t.is_error)
         self.assertEqual(t.skill_calls, ["csv-summary"])
         self.assertTrue(t.activated("csv-summary"))
-        self.assertEqual(t.tool_calls, ["Skill"])
+        self.assertEqual(t.tool_calls, ["activate_skill"])
         self.assertEqual(t.result, "Using the csv-summary skill.")
 
     def test_no_activation(self):
@@ -39,6 +39,21 @@ class GeminiParseTests(SkillDirCase):
         t = parse_gemini_text(fixture("gemini_error.jsonl"))
         self.assertTrue(t.is_error)
         self.assertIn("401", t.result)
+
+    def test_warning_is_not_fatal(self):
+        t = parse_gemini_text(fixture("gemini_error.jsonl").splitlines()[2])
+        self.assertFalse(t.is_error)
+
+    def test_skill_md_read_heuristic(self):
+        t = parse_gemini_text(fixture("gemini_read_skill_md.jsonl"))
+        self.assertEqual(t.skill_calls, ["bread"])
+        self.assertEqual(t.tool_calls, ["read_file"])
+
+    def test_session_format_fallback(self):
+        t = parse_gemini_text(fixture("gemini_session_trigger.jsonl"))
+        self.assertTrue(t.finished)
+        self.assertEqual(t.skill_calls, ["csv-summary"])
+        self.assertEqual(t.result, "Using the csv-summary skill.")
 
     def test_bad_lines(self):
         t = parse_gemini_text("not json\n" + fixture("gemini_no_trigger.jsonl"))
@@ -73,7 +88,8 @@ class GeminiRunnerTests(SkillDirCase):
         self.assertEqual(cmd[:2], ["gemini", "-p"])
         self.assertIn("--output-format", cmd)
         self.assertIn("stream-json", cmd)
-        self.assertEqual(seen["env"]["GEMINI_HOME"], str(seen["cwd"] / ".gemini"))
+        self.assertEqual(seen["env"]["GEMINI_CLI_HOME"], str(seen["cwd"]))
+        self.assertNotIn("GEMINI_HOME", seen["env"])
         self.assertFalse(seen["cwd"].exists())
 
     def test_available_is_false_when_gemini_missing(self):
