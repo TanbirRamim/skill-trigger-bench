@@ -1,0 +1,5 @@
+{"sessionId": "0199a213-81c0-7800-8aa1-bbab2a035a53", "startTime": "2026-10-17T09:00:00.000Z"}
+{"id": "u1", "type": "user", "content": [{"text": "Summarize the sales.csv file"}]}
+{"id": "g1", "type": "gemini", "model": "gemini-2.5-pro", "toolCalls": [{"id": "call_0", "name": "Skill", "args": {"name": "csv-summary"}}]}
+{"id": "g2", "type": "gemini", "model": "gemini-2.5-pro", "content": [{"text": "Using the csv-summary skill."}]}
+{"type": "result", "status": "completed"}

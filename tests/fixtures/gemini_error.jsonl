@@ -1,0 +1,3 @@
+{"sessionId": "0199a213-81c0-7800-8aa1-bbab2a035a56", "startTime": "2026-10-17T09:00:00.000Z"}
+{"id": "u1", "type": "user", "content": [{"text": "Summarize the file"}]}
+{"type": "error", "error": {"code": 401, "message": "API key invalid or expired"}}
