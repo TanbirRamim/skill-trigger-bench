@@ -228,9 +228,7 @@ def parse_gemini_events(events, names: dict[str, str] | None = None) -> Transcri
                 t.result = content
             elif isinstance(content, list):
                 texts = [
-                    b.get("text")
-                    for b in content
-                    if isinstance(b, dict) and b.get("text") and not b.get("thought")
+                    b.get("text") for b in content if isinstance(b, dict) and b.get("text") and not b.get("thought")
                 ]
                 if texts:
                     t.result = texts[-1]
