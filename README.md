@@ -1,33 +1,39 @@
 # skill-trigger-bench
 
-You wrote a skill. The description looks right. Claude still doesn't use it.
+Find out which of your skills Claude never uses.
 
-That's the most common complaint about Agent Skills right now, and it's hard to debug
-because nothing tells you a skill was skipped:
+[![CI](https://github.com/TanbirRamim/skill-trigger-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/TanbirRamim/skill-trigger-bench/actions/workflows/ci.yml) [![skills lint](https://github.com/TanbirRamim/skill-trigger-bench/actions/workflows/skills.yml/badge.svg)](https://github.com/TanbirRamim/skill-trigger-bench/actions/workflows/skills.yml) [![MIT](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
 
-- Skills don't auto-activate, and matching looks more like keyword overlap than meaning
-  ([anthropics/claude-code#46952](https://github.com/anthropics/claude-code/issues/46952),
-  with Scott Spence's measurements:
-  [sandboxed evals](https://scottspence.com/posts/measuring-claude-code-skill-activation-with-sandboxed-evals),
-  [skills don't auto-activate](https://scottspence.com/posts/claude-code-skills-dont-auto-activate)).
-- A personal skill never triggers even though the prompt matches its description
-  ([anthropics/claude-code#21947](https://github.com/anthropics/claude-code/issues/21947)).
-- Skill descriptions share a budget of roughly 15k characters. Install enough skills and
-  some are silently never shown to the model
-  ([fsck.com, "Claude Code skills not triggering"](https://blog.fsck.com/2025/12/17/claude-code-skills-not-triggering/)).
-- The trigger eval in skill-creator reports a 0% trigger rate for everything
-  ([anthropics/skills#556](https://github.com/anthropics/skills/issues/556)), and the harness
-  measures slash-command registration rather than auto-triggering
-  ([anthropics/claude-code#79998](https://github.com/anthropics/claude-code/issues/79998)).
-- Overlapping plugins install near-duplicate skills that compete for the same prompts
-  ([anthropics/skills#189](https://github.com/anthropics/skills/issues/189)).
+Try it on your own skills, nothing to install first:
+
+```sh
+uvx --from git+https://github.com/TanbirRamim/skill-trigger-bench stb lint ~/.claude/skills
+```
+
+What it printed on my machine (trimmed):
+
+```
+43 skills (43 dir)
+description budget: 22086 / ~15000 chars
+
+error   description-budget     *: 43 skill descriptions total 22086 chars, over the ~15000 char budget; roughly 13 of them may never be shown to the model
+warning trigger-overlap        sandbox-next: description overlaps with 'sandbox-stable' (cosine 0.56; shared: sandbox, stable, next, cloudflare, port, chang)
+
+1 errors, 15 warnings
+```
+
+![stb lint output on a real ~/.claude/skills folder](assets/lint-demo.svg)
+
+You wrote a skill. The description looks right. Claude still doesn't use it, and nothing tells you it was skipped:
+
+- Skill descriptions share a budget of roughly 15k characters. Install enough skills and some are silently never shown to the model.
+- Overlapping skills compete for the same prompts, so the one you wanted loses.
+
+Installing just the top 3 public skill packs together puts you at 137% of that budget ([State of public skills](docs/state-of-skills.md)).
 
 `stb` gives you two things: a free offline lint of your whole installed set, and a small
 live eval that actually runs prompts through the agent and counts how often it reaches
 for your skill.
-
-I ran it over the most-starred public skill packs. Results, including what happens when you
-install the top 3 together: [State of public skills](docs/state-of-skills.md).
 
 ## Install
 
@@ -215,6 +221,27 @@ you something to parse. `--format github` prints one workflow command per findin
 lint runs on every PR that touches skills; eval is manual (`workflow_dispatch`) because it
 needs an API key and costs money.
 
+## Why
+
+This is the most common complaint about Agent Skills right now:
+
+- Skills don't auto-activate, and matching looks more like keyword overlap than meaning
+  ([anthropics/claude-code#46952](https://github.com/anthropics/claude-code/issues/46952),
+  with Scott Spence's measurements:
+  [sandboxed evals](https://scottspence.com/posts/measuring-claude-code-skill-activation-with-sandboxed-evals),
+  [skills don't auto-activate](https://scottspence.com/posts/claude-code-skills-dont-auto-activate)).
+- A personal skill never triggers even though the prompt matches its description
+  ([anthropics/claude-code#21947](https://github.com/anthropics/claude-code/issues/21947)).
+- Skill descriptions share a budget of roughly 15k characters. Install enough skills and
+  some are silently never shown to the model
+  ([fsck.com, "Claude Code skills not triggering"](https://blog.fsck.com/2025/12/17/claude-code-skills-not-triggering/)).
+- The trigger eval in skill-creator reports a 0% trigger rate for everything
+  ([anthropics/skills#556](https://github.com/anthropics/skills/issues/556)), and the harness
+  measures slash-command registration rather than auto-triggering
+  ([anthropics/claude-code#79998](https://github.com/anthropics/claude-code/issues/79998)).
+- Overlapping plugins install near-duplicate skills that compete for the same prompts
+  ([anthropics/skills#189](https://github.com/anthropics/skills/issues/189)).
+
 ## How is this different from `claude plugin eval` and `/skill-doctor`?
 
 Claude Code now ships both, and if you only use Claude Code and care about one skill at a
@@ -254,3 +281,7 @@ MIT
 - [@Pranitha06sri](https://github.com/Pranitha06sri): `stb lint --suggest` (#14)
 - [@yesheng-oss](https://github.com/yesheng-oss): GitHub Action wrapper (#17)
 - [@chiragjangiir](https://github.com/chiragjangiir): the `description-filler-start` rule (#19), SARIF output (#21)
+
+## Also by me
+
+[show-receipts](https://github.com/TanbirRamim/show-receipts) blocks an agent's "tests pass" claim when no test actually ran. [Open Source Radar](https://github.com/TanbirRamim/open-source-radar) is an index of open issues worth picking up.

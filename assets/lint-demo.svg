@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="302" viewBox="0 0 1260 302" role="img" aria-label="stb lint output on a real ~/.claude/skills folder">
+<rect width="1260" height="302" rx="10" fill="#0d1117"/>
+<circle cx="22" cy="20" r="6" fill="#ff5f57"/><circle cx="42" cy="20" r="6" fill="#febc2e"/><circle cx="62" cy="20" r="6" fill="#28c840"/>
+<text x="630" y="25" fill="#8b949e" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" text-anchor="middle">a real stb lint run on ~/.claude/skills (trimmed)</text>
+<text x="22" y="52" fill="#8b949e" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">$ stb lint ~/.claude/skills</text>
+<text x="22" y="74" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">43 skills (43 dir)</text>
+<text x="22" y="96" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">description budget: 22086 / ~15000 chars</text>
+<text x="22" y="118" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve"></text>
+<text x="22" y="140" fill="#ff7b72" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">error   description-budget     *: 43 skill descriptions total 22086 chars, over the ~15000 char budget; roughly 13 of them may never be shown to the model</text>
+<text x="22" y="162" fill="#ffa657" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">warning body-too-long          talking-head-recut: SKILL.md body is 1204 lines (suggested max 500); move detail into reference files</text>
+<text x="22" y="184" fill="#ffa657" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">warning description-no-when    motion-graphics: description says what the skill does but not when to use it (add &#x27;Use when ...&#x27;)</text>
+<text x="22" y="206" fill="#ffa657" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">warning missing-reference      music-to-video: mentions &#x27;references/bgm.md&#x27; but no installed skill has that file</text>
+<text x="22" y="228" fill="#ffa657" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">warning trigger-overlap        sandbox-next: description overlaps with &#x27;sandbox-stable&#x27; (cosine 0.56; shared: sandbox, stable, next, cloudflare, port, chang)</text>
+<text x="22" y="250" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve"></text>
+<text x="22" y="272" fill="#e6edf3" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" xml:space="preserve">1 errors, 15 warnings</text>
+</svg>
