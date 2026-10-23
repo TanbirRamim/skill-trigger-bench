@@ -422,7 +422,7 @@ class LintTests(SkillDirCase):
         self.make_skill(
             "resend-cli",
             "resend-cli",
-            "Send email with the Resend CLI: webhooks, domains, templates. Use when emailing from a terminal.",
+            "Send email with the Resend CLI, webhooks, domains, templates. Use when emailing from a terminal.",
         )
         self.make_skill("bread", "bread", "Bake sourdough bread. Use when the user asks about baking.")
         findings, stats = self.run_lint()

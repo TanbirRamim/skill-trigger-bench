@@ -25,6 +25,20 @@ class SplitTests(unittest.TestCase):
 
 
 class SimpleYamlTests(unittest.TestCase):
+    def test_colon_in_plain_value_is_an_error(self):
+        # PyYAML rejects these too, so the fallback must not quietly accept them.
+        for text in [
+            "description: Send email with the CLI: webhooks",
+            "description: Use when emailing\n  from the CLI: webhooks",
+            "description: ends with a colon:",
+        ]:
+            with self.subTest(text=text), self.assertRaises(FrontmatterError):
+                parse_simple_yaml(text)
+
+    def test_colon_without_space_or_in_comment_is_fine(self):
+        d = parse_simple_yaml("url: https://example.com/a\ntime: 12:30\nnote: ok # see: docs")
+        self.assertEqual(d, {"url": "https://example.com/a", "time": "12:30", "note": "ok"})
+
     def test_plain_and_quoted(self):
         d = parse_simple_yaml("name: pdf\ndescription: \"Use when: things\"\nother: 'it''s'")
         self.assertEqual(d, {"name": "pdf", "description": "Use when: things", "other": "it's"})

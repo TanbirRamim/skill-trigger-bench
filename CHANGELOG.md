@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `stb lint` now reports an unquoted value with `: ` in it (like `description: Use the CLI: fast`) as a frontmatter error even without PyYAML installed. Real YAML parsers reject that line, so the skill silently fails to load.
+
 ## v0.2.0 (2026-10-23)
 
 - New lint rule `description-filler-start`: flags descriptions that open with filler like "This skill..." (#19, thanks @chiragjangiir)

@@ -284,4 +284,4 @@ MIT
 
 ## Also by me
 
-[show-receipts](https://github.com/TanbirRamim/show-receipts) blocks an agent's "tests pass" claim when no test actually ran. [Open Source Radar](https://github.com/TanbirRamim/open-source-radar) is an index of open issues worth picking up.
+[show-receipts](https://github.com/TanbirRamim/show-receipts) blocks an agent's "tests pass" claim when no test actually ran. [Open Source Radar](https://github.com/TanbirRamim/open-source-radar) lists good first issues from active projects that nobody has claimed yet, plus a guide for first PRs.
