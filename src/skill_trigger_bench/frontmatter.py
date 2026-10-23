@@ -127,6 +127,12 @@ def _value_after_key(lines, i, indent, rest):
                     break
                 parts.append(lines[j].strip())
                 j += 1
+            if re.search(r":(\s|$)", re.sub(r"\s+#.*$", "", " ".join(parts))):
+                # Real YAML parsers (PyYAML, and the one Claude Code uses) reject this,
+                # so the skill would not load. Say so instead of accepting it.
+                raise FrontmatterError(
+                    f"line {i + 1}: a ': ' inside an unquoted value is not valid YAML, put the value in quotes"
+                )
         return _scalar(" ".join(parts)), j
     j = _skip_blank(lines, i + 1)
     if j < len(lines) and _indent(lines[j]) > indent:
