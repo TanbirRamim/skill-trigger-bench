@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.2.1 (2026-10-23)
+
 - `stb eval` checks its arguments before spending model calls: `--min-trigger 80` or `80%` is rejected with a hint that rates are 0..1 (before, it just failed every run), `--with` a path that has no skills is an error instead of being silently dropped, and a missing folder for `--html` is caught up front instead of crashing after the run.
 - `stb lint` now reports an unquoted value with `: ` in it (like `description: Use the CLI: fast`) as a frontmatter error even without PyYAML installed. Real YAML parsers reject that line, so the skill silently fails to load.
 

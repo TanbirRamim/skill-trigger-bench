@@ -1,7 +1,7 @@
 {
   "name": "skill-trigger-bench",
   "description": "Check whether your Agent Skills actually trigger: lint for overlap and the description budget, plus a trigger-rate eval",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": { "name": "Tanbir Hossain Ramim" },
   "homepage": "https://github.com/TanbirRamim/skill-trigger-bench",
   "license": "MIT"
