@@ -5,9 +5,10 @@ Usage: python scripts/state_of_skills.py <dir with shallow clones>
 Each clone is expected at <dir>/<owner>_<repo>. Runs `stb lint --format json`
 on every pack and on the combined installs, and prints JSON to stdout.
 """
+
 import collections
-import os
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -29,9 +30,10 @@ SRC = Path(__file__).resolve().parent.parent / "src"
 
 def lint(paths):
     out = subprocess.run(
-        [sys.executable, "-m", "skill_trigger_bench", "lint", "--format", "json",
-         "--no-plugins", *map(str, paths)],
-        capture_output=True, text=True, env={"PYTHONPATH": str(SRC), "PATH": os.environ.get("PATH", "")},
+        [sys.executable, "-m", "skill_trigger_bench", "lint", "--format", "json", "--no-plugins", *map(str, paths)],
+        capture_output=True,
+        text=True,
+        env={"PYTHONPATH": str(SRC), "PATH": os.environ.get("PATH", "")},
     )
     return json.loads(out.stdout)
 
@@ -52,10 +54,11 @@ def summarize(d):
         "overlapping_pairs": len(s["overlapping_pairs"]),
         "broken_refs": rules["missing-reference:error"],
         "bodies_over_500": rules["body-too-long:warning"],
-        "spec_errors": s["errors"] - rules["description-budget:error"]
-        - rules["missing-reference:error"] - rules["duplicate-name:error"],
-        "budget_message": next((f["message"] for f in d["findings"]
-                                if f["rule"] == "description-budget"), ""),
+        "spec_errors": s["errors"]
+        - rules["description-budget:error"]
+        - rules["missing-reference:error"]
+        - rules["duplicate-name:error"],
+        "budget_message": next((f["message"] for f in d["findings"] if f["rule"] == "description-budget"), ""),
         "name_clashes": sum(1 for c in names.values() if c > 1),
     }
 
@@ -67,22 +70,31 @@ def paths_for(base, repo, part=None):
     gen = root / "composio-skills"
     if part == "generated":
         return [gen]
-    return sorted(p.parent for p in root.rglob("SKILL.md")
-                  if gen not in p.parents and not any(x.startswith(".") for x in p.relative_to(root).parts))
+    return sorted(
+        p.parent
+        for p in root.rglob("SKILL.md")
+        if gen not in p.parents and not any(x.startswith(".") for x in p.relative_to(root).parts)
+    )
 
 
 def main():
     base = Path(sys.argv[1])
     res = {"repos": {}, "combined": {}}
     for r in REPOS:
-        sha = subprocess.run(["git", "-C", str(base / r.replace("/", "_")), "rev-parse", "--short", "HEAD"],
-                             capture_output=True, text=True).stdout.strip()
+        sha = subprocess.run(
+            ["git", "-C", str(base / r.replace("/", "_")), "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
         if r == COMPOSIO:
             for part in ("top", "generated"):
                 res["repos"][f"{r} ({part})"] = {"sha": sha, **summarize(lint(paths_for(base, r, part)))}
         else:
             res["repos"][r] = {"sha": sha, **summarize(lint(paths_for(base, r)))}
-    top = lambda k, part: [p for r in REPOS[:k] for p in paths_for(base, r, part)]
+
+    def top(k, part):
+        return [p for r in REPOS[:k] for p in paths_for(base, r, part)]
+
     res["combined"]["top2"] = summarize(lint(top(2, None)))
     res["combined"]["top3 (Composio top level)"] = summarize(lint(top(3, "top")))
     res["combined"]["top3 (all)"] = summarize(lint(top(3, None)))
