@@ -229,6 +229,28 @@ class CliTests(SkillDirCase):
         d = self.make_skill("x", raw="nothing")
         self.assertEqual(run(["eval", str(d), "--dry-run"])[0], 2)
 
+    def test_eval_rates_must_be_fractions(self):
+        d = self.make_skill("csv-summary", "csv-summary", GOOD)
+        for bad in ("80", "80%", "-0.1", "lots"):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit) as cm:
+                run(["eval", str(d), "--dry-run", "--min-trigger", bad])
+            self.assertEqual(cm.exception.code, 2)
+        self.assertEqual(run(["eval", str(d), "--dry-run", "--max-false", "0.1"])[0], 0)
+
+    def test_eval_with_path_without_skills(self):
+        d = self.make_skill("csv-summary", "csv-summary", GOOD)
+        code, _, err = run(["eval", str(d), "--dry-run", "--with", str(self.root / "nope")])
+        self.assertEqual(code, 2)
+        self.assertIn("no skills found", err)
+
+    def test_eval_html_folder_checked_before_model_calls(self):
+        d = self.make_skill("csv-summary", "csv-summary", GOOD)
+        with patch("skill_trigger_bench.cli.run_eval") as ev:
+            code, _, err = run(["eval", str(d), "--html", str(self.root / "missing" / "r.html")])
+        self.assertEqual(code, 2)
+        self.assertIn("does not exist", err)
+        ev.assert_not_called()
+
     def test_eval_max_prompts_cap(self):
         d = self.make_skill("csv-summary", "csv-summary", GOOD)
         code, _, err = run(["eval", str(d), "-n", "5", "--max-prompts", "2", "--runner", "claude"])
