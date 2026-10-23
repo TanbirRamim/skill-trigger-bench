@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skill-trigger-bench"
-version = "0.1.0"
+version = "0.2.0"
 description = "Check whether your Agent Skills (SKILL.md) actually trigger: lint the installed set, measure activation rates."
 readme = "README.md"
 license = { text = "MIT" }
