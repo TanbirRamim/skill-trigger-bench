@@ -129,6 +129,19 @@ def cmd_lint(args) -> int:
     return EXIT_FAIL if failed else EXIT_OK
 
 
+def _rate(v: str) -> float:
+    """A rate between 0 and 1. "80" or "80%" is almost always a percentage, so say so."""
+    try:
+        x = float(v.rstrip("%"))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a number: {v!r}") from None
+    if v.endswith("%") or x > 1:
+        raise argparse.ArgumentTypeError(f"{v} looks like a percentage; rates are 0..1 (e.g. {x / 100:g})")
+    if x < 0:
+        raise argparse.ArgumentTypeError(f"rate must be between 0 and 1, got {v}")
+    return x
+
+
 def cmd_eval(args) -> int:
     targets = find_skills(Path(args.skill))
     if len(targets) != 1:
@@ -140,7 +153,11 @@ def cmd_eval(args) -> int:
         return EXIT_USAGE
     neighbours = []
     for p in args.with_skills or []:
-        neighbours += find_skills(Path(p))
+        found = find_skills(Path(p))
+        if not found:
+            print(f"--with {p}: no skills found there", file=sys.stderr)
+            return EXIT_USAGE
+        neighbours += found
     if args.prompts:
         try:
             prompts = load_prompt_file(Path(args.prompts))
@@ -158,6 +175,10 @@ def cmd_eval(args) -> int:
             )
         )
         return EXIT_OK
+    if args.html and not Path(args.html).expanduser().resolve().parent.is_dir():
+        # check before the model calls, not after, so a typo doesn't throw the run away
+        print(f"--html: folder for {args.html} does not exist", file=sys.stderr)
+        return EXIT_USAGE
     if not runner.available():
         print(f"runner '{args.runner}' is not available (is `{args.runner}` on PATH?)", file=sys.stderr)
         return EXIT_USAGE
@@ -185,7 +206,10 @@ def cmd_eval(args) -> int:
             max_false=args.max_false,
             model=args.model,
         )
-        Path(args.html).write_text(html_doc, encoding="utf-8")
+        try:
+            Path(args.html).expanduser().write_text(html_doc, encoding="utf-8")
+        except OSError as e:
+            print(f"could not write HTML report: {e}", file=sys.stderr)
     if args.format == "json":
         d = report.to_dict()
         d.update(ok=ok, generated_prompts=prompts.generated, min_trigger=args.min_trigger, max_false=args.max_false)
@@ -248,8 +272,8 @@ def build_parser() -> argparse.ArgumentParser:
     ep.add_argument("--agent", "--runner", dest="runner", choices=sorted(RUNNERS), default="claude")
     ep.add_argument("--model", help="model passed to the runner")
     ep.add_argument("-n", type=int, default=5, help="generated prompts per side (default %(default)s)")
-    ep.add_argument("--min-trigger", type=float, default=0.8)
-    ep.add_argument("--max-false", type=float, default=0.2)
+    ep.add_argument("--min-trigger", type=_rate, default=0.8, help="0..1 (default %(default)s)")
+    ep.add_argument("--max-false", type=_rate, default=0.2, help="0..1 (default %(default)s)")
     ep.add_argument("--max-prompts", type=int, default=40, help="safety cap on model calls (0 = no cap)")
     ep.add_argument("--timeout", type=int, default=180)
     ep.add_argument("--dry-run", action="store_true", help="print the prompts and exit")
