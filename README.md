@@ -29,7 +29,7 @@ You wrote a skill. The description looks right. Claude still doesn't use it, and
 - Skill descriptions share a budget of roughly 15k characters. Install enough skills and some are silently never shown to the model.
 - Overlapping skills compete for the same prompts, so the one you wanted loses.
 
-Installing just the top 3 public skill packs together puts you at 137% of that budget ([State of public skills](docs/state-of-skills.md)).
+Installing just the top 3 public skill packs together (counting only the hand-written Composio skills) puts you at 138% of that budget ([State of public skills](docs/state-of-skills.md)).
 
 `stb` gives you two things: a free offline lint of your whole installed set, and a small
 live eval that actually runs prompts through the agent and counts how often it reaches

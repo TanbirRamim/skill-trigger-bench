@@ -1,5 +1,7 @@
 # State of public skills, October 2026
 
+_Last refreshed 2026-10-23 with `stb` 0.2.0 (master at c4cf32b). First run: 2026-10-09._
+
 I ran `stb lint` over the most-starred public skill repos to see what the static checks
 find on real packs, and what happens when you install several of them at once. Everything
 here is offline: no model calls, nothing from the repos was executed.
@@ -10,26 +12,35 @@ text edit.
 
 ## How this was run
 
-Shallow clones taken on 2026-10-09:
+Shallow clones taken on 2026-10-23 (stars read from the GitHub API the same day):
 
-| repo | commit |
-|---|---|
-| anthropics/skills | 9d63080 |
-| obra/superpowers | 8ca22db |
-| ComposioHQ/awesome-claude-skills | be2a406 |
-| alirezarezvani/claude-skills | 19392f7 |
-| Jeffallan/claude-skills | 1be15d8 |
-| SnailSploit/Claude-Red | 739512a |
-| nidhinjs/prompt-master | 2bd9251 |
-| SawyerHood/dev-browser | a25e767 |
+| repo | stars | commit (2026-10-23) | commit (2026-10-09) |
+|---|---:|---|---|
+| obra/superpowers | 303,791 | 2ce8aa1 | 8ca22db |
+| anthropics/skills | 183,071 | dbd4588 | 9d63080 |
+| ComposioHQ/awesome-claude-skills | 77,702 | be2a406 | be2a406 |
+| alirezarezvani/claude-skills | 28,562 | 27cfcd0 | 19392f7 |
+| nidhinjs/prompt-master | 14,897 | 49b3a72 | 2bd9251 |
+| Jeffallan/claude-skills | 12,012 | 02b0502 | 1be15d8 |
+| SnailSploit/Claude-Red | 7,914 | a8de813 | 739512a |
+| SawyerHood/dev-browser | 6,690 | e5d746f | a25e767 |
 
-Then `stb lint --format json <repo>` for each one, and once with all of them together.
+I searched GitHub again for the most-starred skill repos. The same 8 are still the top
+repos that ship skills; the others near the top (travisvn and BehiSecc's
+awesome-claude-skills) are link lists with no SKILL.md files of their own, so the set is
+unchanged and the numbers are comparable.
+
+Then `stb lint --format json --no-plugins <dirs>` for each one, for the top 3 and top 5
+by stars, and once with all of them together.
+[`scripts/state_of_skills.py`](../scripts/state_of_skills.py) does all of it and prints
+the raw numbers as JSON.
 Some things to keep in mind:
 
 - `stb` skips dot-folders. alirezarezvani/claude-skills keeps per-agent mirrors in
   `.gemini/`, `.codex/` and so on, so those aren't counted. 14 of its skills also exist
-  twice outside the dot-folders, as identical copies (plugin layout plus a flat
-  `skills/` folder). They're counted twice below.
+  twice outside the dot-folders. On 2026-10-23 that's 16 names: 15 identical copies
+  (plugin layout plus a flat `skills/` folder) and one, `handoff`, that differs. They're
+  counted twice below.
 - awesome-claude-skills is mostly a list, but it also ships real skills: 32 hand-written
   ones at the top level and 832 generated Composio toolkit skills in `composio-skills/`.
   The two halves look very different, so I split them where it matters.
@@ -43,7 +54,8 @@ Some things to keep in mind:
 - "Broken refs" only counts markdown links to relative files that don't exist. Bare
   paths in prose (often examples, like `scripts/tool.sh` in a guide about writing skills)
   aren't counted.
-- "Spec errors" are hard failures against the
+- "Spec errors" are `stb` errors other than the budget, broken refs and duplicate names,
+  i.e. hard failures against the
   [Agent Skills spec](https://agentskills.io/specification): missing frontmatter, a name
   that isn't lowercase-hyphen, a description over 1024 chars.
 
@@ -55,20 +67,23 @@ counting as a when-clause, and a hang on symlink loops.
 
 | repo | skills | description chars | missing "when" | overlapping pairs | broken refs | bodies > 500 lines | spec errors |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| obra/superpowers | 15 | 2,615 | 0% | 1 | 0 | 2 | 0 |
+| obra/superpowers | 15 | 2,630 | 0% | 1 | 0 | 0 | 0 |
 | anthropics/skills | 20 | 9,696 | 10% | 1 | 0 | 1 | 1 |
 | ComposioHQ/awesome-claude-skills (top level) | 32 | 8,306 | 50% | 2 | 0 | 2 | 0 |
 | ComposioHQ/awesome-claude-skills (`composio-skills/`) | 832 | 103,384 | 100% | 1,862 | 0 | 0 | 92 |
-| alirezarezvani/claude-skills | 387 | 182,927 | 0% | 51 | 2 | 3 | 1 |
-| Jeffallan/claude-skills | 67 | 30,376 | 0% | 2 | 0 | 0 | 0 |
-| SnailSploit/Claude-Red | 79 | 43,758 | 27% | 1 | 2 | 41 | 46 |
+| alirezarezvani/claude-skills | 397 | 189,059 | 0% | 58 | 2 | 3 | 0 |
 | nidhinjs/prompt-master | 1 | 346 | 0% | 0 | 0 | 0 | 0 |
+| Jeffallan/claude-skills | 67 | 30,376 | 0% | 2 | 0 | 0 | 0 |
+| SnailSploit/Claude-Red | 79 | 43,758 | 18% | 1 | 2 | 41 | 46 |
 | SawyerHood/dev-browser | 1 | 436 | 0% | 0 | 0 | 0 | 0 |
+
+Errors and warnings by rule for every row, and for the combined installs, are in the
+script's JSON output.
 
 Notes per repo:
 
 - **obra/superpowers** is the cleanest of the big ones. 15 short descriptions, all with a
-  clear trigger. The one overlap is `executing-plans` / `subagent-driven-development`,
+  clear trigger. Its two long bodies from the first run are now under 500 lines. The one overlap is `executing-plans` / `subagent-driven-development`,
   two ways to run a plan, so some overlap is expected there.
 - **anthropics/skills**: `claude-api` has a 1,068-char description, a bit over the
   spec's 1,024, and that looks deliberate (it's a detailed TRIGGER/SKIP block).
@@ -80,12 +95,13 @@ Notes per repo:
   hyphen (`-21risk-automation`), which the spec doesn't allow. None of the descriptions
   say when to use the skill. Some toolkits show up twice under two spellings, e.g.
   `SurveyMonkey Automation` and `survey_monkey-automation`.
-- **alirezarezvani/claude-skills** is huge (387 skills, 183k description chars), but
+- **alirezarezvani/claude-skills** is huge (397 skills, 189k description chars, about
+  12.6x the budget on its own), but
   every description has a when-clause, which is good discipline at that size. Two links
-  are written relative to the repo root instead of the file, so they 404 even on GitHub.
+  are still written relative to the repo root instead of the file, so they 404 even on GitHub.
 - **Jeffallan/claude-skills** is clean apart from size: 67 skills, about 2x the budget
   on its own.
-- **SnailSploit/Claude-Red**: 28 SKILL.md files have no YAML frontmatter at all, so an
+- **SnailSploit/Claude-Red**: about 2.9x the budget on its own. 28 SKILL.md files have no YAML frontmatter at all, so an
   agent can't list them. 18 descriptions are over 1,024 chars, and 41 bodies are over
   500 lines.
 - The two single-skill repos are fine. prompt-master gets a name/folder mismatch, but
@@ -120,7 +136,10 @@ different product, but the shared template ("Automate ... tasks via Rube MCP (Co
 makes them look alike to a lexical check. Putting the product name first and moving the
 template text out of the description would remove most of that.
 
-## Installing the top 3 together
+Rechecked on 2026-10-23: the top 10 are the same pairs with the same scores. One new
+pair sits just below them, `cs-onboard` / `onboard` (alirezarezvani, 0.52).
+
+## Installing the top 3 and top 5 together
 
 Claude Code lists skill descriptions within a budget. Skills past it are silently left
 out of the list the model sees. The figure people use is about 15,000 characters. That
@@ -133,9 +152,14 @@ Top 3 by stars: obra/superpowers, anthropics/skills, ComposioHQ/awesome-claude-s
 
 | install | skills | description chars | vs ~15k |
 |---|---:|---:|---:|
-| superpowers + anthropics | 35 | 12,311 | 82%, fits |
-| + Composio top level only | 67 | 20,617 | 137% |
-| + all of Composio | 899 | 124,001 | about 8x |
+| superpowers + anthropics | 35 | 12,326 | 82%, fits |
+| + Composio top level only (top 3) | 67 | 20,632 | 138% |
+| + all of Composio | 899 | 124,016 | about 8.3x |
+| top 5, Composio top level only (+ alirezarezvani, prompt-master) | 465 | 210,037 | 14x |
+| top 5, all of Composio | 1,297 | 313,421 | about 21x |
+
+The headline 138% counts Composio's 32 hand-written skills only, not the 832 generated
+ones in `composio-skills/`. Counting those too is the "all of Composio" row.
 
 - superpowers and anthropics/skills fit together with some room left. Most people
   probably have this setup.
@@ -146,9 +170,23 @@ Top 3 by stars: obra/superpowers, anthropics/skills, ComposioHQ/awesome-claude-s
   name and the agent can only pick one.
 - Adding all of `composio-skills/` puts the set at roughly 8x the budget. By `stb`'s
   count, about 848 of 899 descriptions would never be shown.
+- The top 5 is mostly alirezarezvani: that one pack is 189k chars, so adding it takes the
+  set to 14x even without the generated Composio skills, with 30 duplicate names and
+  roughly 420 of 465 descriptions past the budget.
 
-For scale: all 8 repos together are 1,434 skills and 381,844 description chars. Nobody
+For scale: all 8 repos together are 1,444 skills and 387,991 description chars (about 26x). Nobody
 should install that, but it shows how fast a few "install the whole pack" steps add up.
+
+## What changed since the last run
+
+Two weeks on (2026-10-09 to 2026-10-23), 7 of the 8 repos have new commits but the picture
+is the same. The top 3 moved from 137% to 138% of the budget (+15 chars, all from
+superpowers). alirezarezvani grew by 10 skills and 6k chars and now has 16 duplicated names
+instead of 14. superpowers no longer has bodies over 500 lines. SnailSploit's
+missing-"when" share went from 27% to 18%. Composio hasn't changed. The method is the
+same; the only additions are the top-5 rows, star counts, and a script so the run can be
+repeated. `stb` gained one rule in between (`: ` in unquoted frontmatter values when PyYAML
+isn't installed), and lint ran here without PyYAML.
 
 ## What would help
 
@@ -164,4 +202,5 @@ None of this needs a rewrite:
 - **Everyone**: run a linter in CI. `stb lint --format json` works, and so do
   `/skill-doctor` and `claude plugin eval` if you're Claude-only.
 
-To reproduce: clone the repos at the commits above and run `stb lint --format json <dir>`.
+To reproduce: shallow-clone the repos at the commits above into one folder as
+`<owner>_<repo>` and run `python scripts/state_of_skills.py <folder>` from the repo root.
