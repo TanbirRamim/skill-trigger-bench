@@ -1,0 +1,13 @@
+# Changelog
+
+## v0.2.0 (2026-10-23)
+
+- New lint rule `description-filler-start`: flags descriptions that open with filler like "This skill..." (#19, thanks @chiragjangiir)
+- `stb lint --format sarif` writes SARIF 2.1.0, so findings show up in GitHub code scanning (#21, thanks @chiragjangiir)
+- `stb eval --html` exports a standalone HTML report (#23, thanks @chiragjangiir)
+- Gemini CLI runner for `stb eval` (#24, thanks @chiragjangiir)
+- Gemini runner parses stream-json `tool_use` / `activate_skill` events and uses `GEMINI_CLI_HOME` for isolation (#26)
+
+## v0.1.0 (2026-10-13)
+
+First tagged release: `stb lint`, `--suggest` (thanks @Pranitha06sri) and a composite GitHub Action (thanks @yesheng-oss).
