@@ -246,6 +246,24 @@ class LintTests(SkillDirCase):
         self.make_skill("x", "x", "Use when x.")
         self.assertIn("description-short", rules(self.run_lint()[0]))
 
+    def test_description_placeholder(self):
+        for word in ("TODO", "TBD", "FIXME", "lorem ipsum", "todo", "tbd", "fixme", "Lorem Ipsum"):
+            with self.subTest(word=word):
+                self.make_skill("x", "x", f"Summarize data ({word}). Use when asked.")
+                findings = [x for x in self.run_lint()[0] if x.rule == "description-placeholder"]
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(findings[0].severity, "warning")
+                self.assertEqual(findings[0].message, f"description contains placeholder text '{word}'")
+
+    def test_description_placeholder_does_not_fire_on_real_words(self):
+        for desc in (
+            "Integrates with Todoist to manage user tasks. Use when asked to sync tasks.",
+            "A TODOs app manager for tracking daily project items. Use when the user asks about tasks.",
+        ):
+            with self.subTest(desc=desc):
+                self.make_skill("x", "x", desc)
+                self.assertNotIn("description-placeholder", rules(self.run_lint()[0]))
+
     def test_description_without_when(self):
         self.make_skill("x", "x", "Converts PDF documents into clean Markdown with tables preserved.")
         self.assertIn("description-no-when", rules(self.run_lint()[0]))
