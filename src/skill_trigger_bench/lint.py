@@ -44,7 +44,8 @@ POINT_OF_VIEW_RE = re.compile(
 )
 
 FILLER_START_RE = re.compile(r"^(this (?:is a )?skill|a skill|skill (?:for|to))\b[\s]*", re.I)
-PLACEHOLDER_RE = re.compile(r"\b(todo|tbd|fixme)\b|\blorem\s+ipsum\b", re.I)
+# Placeholders are written in capitals; a lowercase "todo" is usually a real word ("manage a todo list").
+PLACEHOLDER_RE = re.compile(r"\b(?:TODO|TBD|FIXME|XXX)\b|\b(?i:lorem\s+ipsum)\b")
 
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 

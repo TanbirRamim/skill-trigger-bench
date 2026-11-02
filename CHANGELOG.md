@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New lint rule `description-placeholder`: warns when a description still has `TODO`, `TBD`, `FIXME`, `XXX` or lorem ipsum in it (#35, thanks @Shafaq-codes). Only capitalised markers count, so "a todo list" is fine.
+
 ## v0.2.1 (2026-10-23)
 
 - `stb eval` checks its arguments before spending model calls: `--min-trigger 80` or `80%` is rejected with a hint that rates are 0..1 (before, it just failed every run), `--with` a path that has no skills is an error instead of being silently dropped, and a missing folder for `--html` is caught up front instead of crashing after the run.

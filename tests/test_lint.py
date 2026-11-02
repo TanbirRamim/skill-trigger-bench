@@ -247,7 +247,7 @@ class LintTests(SkillDirCase):
         self.assertIn("description-short", rules(self.run_lint()[0]))
 
     def test_description_placeholder(self):
-        for word in ("TODO", "TBD", "FIXME", "lorem ipsum", "todo", "tbd", "fixme", "Lorem Ipsum"):
+        for word in ("TODO", "TBD", "FIXME", "XXX", "lorem ipsum", "Lorem Ipsum"):
             with self.subTest(word=word):
                 self.make_skill("x", "x", f"Summarize data ({word}). Use when asked.")
                 findings = [x for x in self.run_lint()[0] if x.rule == "description-placeholder"]
@@ -259,6 +259,7 @@ class LintTests(SkillDirCase):
         for desc in (
             "Integrates with Todoist to manage user tasks. Use when asked to sync tasks.",
             "A TODOs app manager for tracking daily project items. Use when the user asks about tasks.",
+            "Manages a todo list and tbd items in plain text. Use when the user asks about their todo list.",
         ):
             with self.subTest(desc=desc):
                 self.make_skill("x", "x", desc)
