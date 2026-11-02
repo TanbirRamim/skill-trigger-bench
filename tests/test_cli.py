@@ -39,6 +39,11 @@ class CliTests(SkillDirCase):
         code, out, _ = run(["lint", "--strict", "--ignore", "description-no-when", str(self.root)])
         self.assertEqual(code, 0)
 
+    def test_ignore_description_placeholder(self):
+        self.make_skill("x", "x", "Summarize data with TODO. Use when user asks.")
+        code, _, _ = run(["lint", "--strict", "--ignore", "description-placeholder", str(self.root)])
+        self.assertEqual(code, 0)
+
     def test_json_output(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
         code, out, _ = run(["lint", "--format", "json", str(self.root)])
