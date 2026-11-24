@@ -145,7 +145,7 @@ class CliTests(SkillDirCase):
 
     def test_markdown_format_with_findings(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
-        finding = Finding("trigger-overlap", "warning", "csv-summary", "message has | separator\\nand another line")
+        finding = Finding("trigger-overlap", "warning", "csv-summary", "message has | separator\nand another line")
         stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 0, "warnings": 1}
         with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
             code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
