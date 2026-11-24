@@ -32,7 +32,9 @@ def _github_escape_prop(s: str) -> str:
 
 def _markdown_cell(value: str) -> str:
     """Keep finding values on one row of a Markdown table."""
-    return str(value).replace("\\", "\\\\").replace("|", "\\|").replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
+    text = str(value).replace("\\", "\\\\").replace("|", "\\|")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return text.replace("\n", "<br>")
 
 
 def cmd_lint(args) -> int:
