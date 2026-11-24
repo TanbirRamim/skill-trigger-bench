@@ -72,7 +72,7 @@ def cmd_lint(args) -> int:
                 print(f"::{command} title={title}::{msg}")
     elif args.format == "markdown":
         print(
-            f"{stats['skills']} skills | description budget: "
+            f"{stats['skills']} skill{'s' if stats['skills'] != 1 else ''} | description budget: "
             f"{stats['description_chars']} / ~{stats['budget']} chars | "
             f"{stats['errors']} errors, {stats['warnings']} warnings"
         )
