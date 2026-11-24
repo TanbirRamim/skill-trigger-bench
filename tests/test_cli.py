@@ -143,6 +143,17 @@ class CliTests(SkillDirCase):
         for options in ([], ["--suggest"]):
             self.assertEqual(run(["lint", str(self.root / "empty")] + options)[0], 2)
 
+    def test_markdown_format_with_findings(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding("trigger-overlap", "warning", "csv-summary", "message has | separator\\nand another line")
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 0, "warnings": 1}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+        self.assertEqual(code, 0)
+        self.assertIn("1 skills | description budget: 42 / ~15000 chars | 0 errors, 1 warnings", out)
+        self.assertIn("| Level | Rule | Skill | Message |", out)
+        self.assertIn("| warning | trigger-overlap | csv-summary | message has \\| separator<br>and another line |", out)
+
     def test_sarif_format_clean_exit_zero(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
         code, out, _ = run(["lint", "--format", "sarif", str(self.root)])
