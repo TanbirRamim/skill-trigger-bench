@@ -150,7 +150,7 @@ class CliTests(SkillDirCase):
         with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
             code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
         self.assertEqual(code, 0)
-        self.assertIn("1 skills | description budget: 42 / ~15000 chars | 0 errors, 1 warnings", out)
+        self.assertIn("1 skill | description budget: 42 / ~15000 chars | 0 errors, 1 warnings", out)
         self.assertIn("| Level | Rule | Skill | Message |", out)
         self.assertIn("| warning | trigger-overlap | csv-summary | message has \\| separator<br>and another line |", out)
 
