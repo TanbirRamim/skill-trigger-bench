@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import argparse
+import argparse\nimport html
 import json
 import os
 import sys
@@ -31,10 +31,15 @@ def _github_escape_prop(s: str) -> str:
 
 
 def _markdown_cell(value: str) -> str:
-    """Keep finding values on one row of a Markdown table."""
-    text = str(value).replace("\\", "\\\\").replace("|", "\\|")
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-    return text.replace("\n", "<br>")
+    """Render untrusted finding data as literal, single-row Markdown cell text."""
+    lines = str(value).replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    escaped_lines = []
+    for line in lines:
+        text = html.escape(line, quote=False)
+        for char in r"\\`*_{}[]()#+-.!|~":
+            text = text.replace(char, "\\" + char)
+        escaped_lines.append(text)
+    return "<br>".join(escaped_lines)
 
 
 def cmd_lint(args) -> int:
