@@ -37,7 +37,7 @@ def _markdown_cell(value: str) -> str:
     escaped_lines = []
     for line in lines:
         text = html.escape(line, quote=False)
-        for char in ("\\", chr(96), "*", "_", "{", "}", "[", "]", "(", ")", "#", "+", "-", ".", "!", "|", "~"):
+        for char in ("\\", chr(96), "*", "_", "{", "}", "[", "]", "(", ")", "#", "+", "-", "!", "|", "~"):
             text = text.replace(char, "\\" + char)
         escaped_lines.append(text)
     return "<br>".join(escaped_lines)
