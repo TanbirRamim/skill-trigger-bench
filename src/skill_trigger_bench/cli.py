@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import argparse\nimport html
+import argparse
+import html
 import json
 import os
 import sys
@@ -36,7 +37,7 @@ def _markdown_cell(value: str) -> str:
     escaped_lines = []
     for line in lines:
         text = html.escape(line, quote=False)
-        for char in r"\\`*_{}[]()#+-.!|~":
+        for char in ("\\", chr(96), "*", "_", "{", "}", "[", "]", "(", ")", "#", "+", "-", ".", "!", "|", "~"):
             text = text.replace(char, "\\" + char)
         escaped_lines.append(text)
     return "<br>".join(escaped_lines)
