@@ -169,7 +169,7 @@ class CliTests(SkillDirCase):
         self.assertEqual(code, 1)
         self.assertIn(r"\!\[tracker\]\(https&#58;&#47;&#47;example&#46;com&#47;pixel\)", out)
         self.assertIn("&lt;img src=x&gt;", out)
-        self.assertIn(r"&lt;script&gt;alert\(1\)&lt;/script&gt;", out)
+        self.assertIn(r"&lt;script&gt;alert\(1\)&lt;&#47;script&gt;", out)
         self.assertNotIn("![tracker]", out)
         self.assertNotIn("<script>", out)
 
