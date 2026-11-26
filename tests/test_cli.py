@@ -154,6 +154,25 @@ class CliTests(SkillDirCase):
         self.assertIn("| Level | Rule | Skill | Message |", out)
         self.assertIn("| warning | trigger-overlap | csv-summary | message has \\| separator<br>and another line |", out)
 
+    def test_markdown_format_escapes_untrusted_markdown_and_html(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding(
+            "name-format",
+            "error",
+            "![tracker](https://example.com/pixel) <img src=x>",
+            "unexpected <script>alert(1)</script>",
+        )
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 1, "warnings": 0}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertIn(r"\\!\\[tracker\\]\\(https://example.com/pixel\\)", out)
+        self.assertIn("&lt;img src=x&gt;", out)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", out)
+        self.assertNotIn("![tracker]", out)
+        self.assertNotIn("<script>", out)
+
     def test_sarif_format_clean_exit_zero(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
         code, out, _ = run(["lint", "--format", "sarif", str(self.root)])
