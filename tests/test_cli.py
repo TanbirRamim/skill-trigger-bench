@@ -173,6 +173,26 @@ class CliTests(SkillDirCase):
         self.assertNotIn("![tracker]", out)
         self.assertNotIn("<script>", out)
 
+    def test_markdown_format_prevents_untrusted_autolinks(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding(
+            "name-format",
+            "error",
+            "https://example.com/path user@example.com www.example.com",
+            "visit https://example.com/help",
+        )
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 1, "warnings": 0}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertIn("https&#58;&#47;&#47;example&#46;com&#47;path", out)
+        self.assertIn("user&#64;example&#46;com", out)
+        self.assertIn("www&#46;example&#46;com", out)
+        self.assertNotIn("https://example.com", out)
+        self.assertNotIn("user@example.com", out)
+        self.assertNotIn("www.example.com", out)
+
     def test_sarif_format_clean_exit_zero(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
         code, out, _ = run(["lint", "--format", "sarif", str(self.root)])
