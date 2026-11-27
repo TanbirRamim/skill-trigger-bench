@@ -41,6 +41,8 @@ def _markdown_cell(value: str) -> str:
             text = text.replace(char, "\\" + char)
         for char, entity in ((":", "&#58;"), ("/", "&#47;"), (".", "&#46;"), ("@", "&#64;")):
             text = text.replace(char, entity)
+        for char, entity in (("$", "&#36;"), ("^", "&#94;")):
+            text = text.replace(char, entity)
         escaped_lines.append(text)
     return "<br>".join(escaped_lines)
 
