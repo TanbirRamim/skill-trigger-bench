@@ -193,6 +193,24 @@ class CliTests(SkillDirCase):
         self.assertNotIn("user@example.com", out)
         self.assertNotIn("www.example.com", out)
 
+    def test_markdown_format_prevents_untrusted_math_rendering(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding(
+            "name-format",
+            "error",
+            "$x^2$",
+            "formula: $E=mc^2$",
+        )
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 1, "warnings": 0}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertIn("&#36;x&#94;2&#36;", out)
+        self.assertIn("&#36;E=mc&#94;2&#36;", out)
+        self.assertNotIn("$x^2$", out)
+        self.assertNotIn("$E=mc^2$", out)
+
     def test_sarif_format_clean_exit_zero(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
         code, out, _ = run(["lint", "--format", "sarif", str(self.root)])
