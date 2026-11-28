@@ -143,6 +143,74 @@ class CliTests(SkillDirCase):
         for options in ([], ["--suggest"]):
             self.assertEqual(run(["lint", str(self.root / "empty")] + options)[0], 2)
 
+    def test_markdown_format_with_findings(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding("trigger-overlap", "warning", "csv-summary", "message has | separator\nand another line")
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 0, "warnings": 1}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+        self.assertEqual(code, 0)
+        self.assertIn("1 skill | description budget: 42 / ~15000 chars | 0 errors, 1 warnings", out)
+        self.assertIn("| Level | Rule | Skill | Message |", out)
+        self.assertIn("| warning | trigger-overlap | csv-summary | message has \\| separator<br>and another line |", out)
+
+    def test_markdown_format_escapes_untrusted_markdown_and_html(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding(
+            "name-format",
+            "error",
+            "![tracker](https://example.com/pixel) <img src=x>",
+            "unexpected <script>alert(1)</script>",
+        )
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 1, "warnings": 0}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertIn(r"\!\[tracker\]\(https&#58;&#47;&#47;example&#46;com&#47;pixel\)", out)
+        self.assertIn("&lt;img src=x&gt;", out)
+        self.assertIn(r"&lt;script&gt;alert\(1\)&lt;&#47;script&gt;", out)
+        self.assertNotIn("![tracker]", out)
+        self.assertNotIn("<script>", out)
+
+    def test_markdown_format_prevents_untrusted_autolinks(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding(
+            "name-format",
+            "error",
+            "https://example.com/path user@example.com www.example.com",
+            "visit https://example.com/help",
+        )
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 1, "warnings": 0}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertIn("https&#58;&#47;&#47;example&#46;com&#47;path", out)
+        self.assertIn("user&#64;example&#46;com", out)
+        self.assertIn("www&#46;example&#46;com", out)
+        self.assertNotIn("https://example.com", out)
+        self.assertNotIn("user@example.com", out)
+        self.assertNotIn("www.example.com", out)
+
+    def test_markdown_format_prevents_untrusted_math_rendering(self):
+        self.make_skill("csv-summary", "csv-summary", GOOD)
+        finding = Finding(
+            "name-format",
+            "error",
+            "$x^2$",
+            "formula: $E=mc^2$",
+        )
+        stats = {"skills": 1, "description_chars": 42, "budget": 15000, "errors": 1, "warnings": 0}
+        with patch("skill_trigger_bench.cli.lint", return_value=([finding], stats)):
+            code, out, _ = run(["lint", "--format", "markdown", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertIn("&#36;x&#94;2&#36;", out)
+        self.assertIn("&#36;E=mc&#94;2&#36;", out)
+        self.assertNotIn("$x^2$", out)
+        self.assertNotIn("$E=mc^2$", out)
+
     def test_sarif_format_clean_exit_zero(self):
         self.make_skill("csv-summary", "csv-summary", GOOD)
         code, out, _ = run(["lint", "--format", "sarif", str(self.root)])

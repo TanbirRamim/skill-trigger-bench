@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import sys
@@ -28,6 +29,22 @@ def _github_escape_data(s: str) -> str:
 
 def _github_escape_prop(s: str) -> str:
     return _github_escape_data(s).replace(":", "%3A").replace(",", "%2C")
+
+
+def _markdown_cell(value: str) -> str:
+    """Render untrusted finding data as literal, single-row Markdown cell text."""
+    lines = str(value).replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    escaped_lines = []
+    for line in lines:
+        text = html.escape(line, quote=False)
+        for char in ("\\", chr(96), "*", "_", "{", "}", "[", "]", "(", ")", "#", "+", "!", "|", "~"):
+            text = text.replace(char, "\\" + char)
+        for char, entity in ((":", "&#58;"), ("/", "&#47;"), (".", "&#46;"), ("@", "&#64;")):
+            text = text.replace(char, entity)
+        for char, entity in (("$", "&#36;"), ("^", "&#94;")):
+            text = text.replace(char, entity)
+        escaped_lines.append(text)
+    return "<br>".join(escaped_lines)
 
 
 def cmd_lint(args) -> int:
@@ -65,6 +82,19 @@ def cmd_lint(args) -> int:
                 print(f"::{command} file={_github_escape_prop(rel)},title={title}::{msg}")
             else:
                 print(f"::{command} title={title}::{msg}")
+    elif args.format == "markdown":
+        print(
+            f"{stats['skills']} skill{'s' if stats['skills'] != 1 else ''} | description budget: "
+            f"{stats['description_chars']} / ~{stats['budget']} chars | "
+            f"{stats['errors']} errors, {stats['warnings']} warnings"
+        )
+        print()
+        print("| Level | Rule | Skill | Message |")
+        print("| --- | --- | --- | --- |")
+        for f in findings:
+            message = f"{f.message}\n{f.suggestion}" if args.suggest and f.suggestion else f.message
+            cells = (f.severity, f.rule, f.skill, message)
+            print("| " + " | ".join(_markdown_cell(cell) for cell in cells) + " |")
     elif args.format == "sarif":
         rules = [{"id": r} for r in sorted({f.rule for f in findings})]
         results = []
@@ -243,7 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="skill folders or dirs of skills (default: ~/.claude/skills, .claude/skills, installed plugins)",
     )
-    lp.add_argument("--format", choices=["text", "json", "github", "sarif"], default="text")
+    lp.add_argument("--format", choices=["text", "json", "github", "sarif", "markdown"], default="text")
     lp.add_argument(
         "--budget", type=int, default=DEFAULT_BUDGET, help="description budget in chars (default %(default)s)"
     )
